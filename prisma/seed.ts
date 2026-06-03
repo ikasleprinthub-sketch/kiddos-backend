@@ -1,12 +1,10 @@
-import { PrismaClient, OTPType, Role, OrderStatus, PaymentStatus, CouponType, BannerPosition } from "@prisma/client";
-import { Pool } from "pg";
+import { PrismaClient, Role, CouponType, BannerPosition } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import "dotenv/config";
 
-const connectionString = process.env.DATABASE_URL;
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
+const connectionString = process.env.DATABASE_URL!;
+const adapter = new PrismaPg({ connectionString });
 
 const prisma = new PrismaClient({ adapter });
 
