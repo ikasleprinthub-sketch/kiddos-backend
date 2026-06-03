@@ -19,6 +19,7 @@ interface ShippingAddress {
 }
 
 export async function POST(request: NextRequest) {
+  try {
   const user = getUserFromRequest(request);
   if (!user) {
     return NextResponse.json({ message: "Authentication required" }, { status: 401 });
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
   // Calculate subtotal
   const lineItems = items.map((item) => {
     const product = products.find((p) => p.id === item.productId)!;
-    const unitPrice = Number(product.salePrice || product.price);
+    const unitPrice = Number(product.price);
     return { ...item, unitPrice, lineTotal: unitPrice * item.quantity, productName: product.name };
   });
 
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
   const total = Math.max(0, subtotal - discount + deliveryFee);
 
   // Create Razorpay order (amount in paise)
-  const razorpayOrder = await razorpay.orders.create({
+const razorpayOrder = await razorpay.orders.create({
     amount: Math.round(total * 100),
     currency: "INR",
     receipt: `kiddos_${Date.now()}`,
@@ -134,4 +135,11 @@ export async function POST(request: NextRequest) {
     shippingAddress,
     notes,
   });
+  } catch (error) {
+    console.error("[payment/create-order]", error);
+    return NextResponse.json(
+      { message: "Internal server error", detail: (error as Error).message },
+      { status: 500 }
+    );
+  }
 }

@@ -38,6 +38,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const {
     name, description, price, salePrice, stock, sku,
     categoryId, images, isActive, isFeatured, weight, unit, tags,
+    ingredients, healthBenefits, usageInstructions, nutrientFacts, shelfLife, storageInstructions,
   } = body;
 
   const existing = await prisma.product.findUnique({ where: { id } });
@@ -59,6 +60,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (weight !== undefined) updateData.weight = weight || null;
   if (unit !== undefined) updateData.unit = unit;
   if (tags !== undefined) updateData.tags = tags;
+  if (ingredients !== undefined) updateData.ingredients = ingredients || null;
+  if (healthBenefits !== undefined) updateData.healthBenefits = healthBenefits || null;
+  if (usageInstructions !== undefined) updateData.usageInstructions = usageInstructions || null;
+  if (nutrientFacts !== undefined) updateData.nutrientFacts = nutrientFacts || null;
+  if (shelfLife !== undefined) updateData.shelfLife = shelfLife || null;
+  if (storageInstructions !== undefined) updateData.storageInstructions = storageInstructions || null;
 
   if (images !== undefined) {
     await prisma.productImage.deleteMany({ where: { productId: id } });

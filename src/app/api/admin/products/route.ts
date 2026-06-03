@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
     name, description, price, salePrice, stock = 0, sku,
     categoryId, images = [], isActive = true, isFeatured = false,
     weight, unit, tags = [],
+    ingredients, healthBenefits, usageInstructions, nutrientFacts, shelfLife, storageInstructions,
   } = body;
 
   if (!name?.trim()) return NextResponse.json({ message: "Product name is required" }, { status: 400 });
@@ -98,6 +99,12 @@ export async function POST(request: NextRequest) {
       weight: weight || null,
       unit: unit || null,
       tags,
+      ingredients: ingredients || null,
+      healthBenefits: healthBenefits || null,
+      usageInstructions: usageInstructions || null,
+      nutrientFacts: nutrientFacts || undefined,
+      shelfLife: shelfLife || null,
+      storageInstructions: storageInstructions || null,
       images: {
         create: images.map((url: string, i: number) => ({ url, isPrimary: i === 0 })),
       },
