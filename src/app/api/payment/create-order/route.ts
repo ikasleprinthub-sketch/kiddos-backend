@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
   const productIds = items.map((i) => i.productId);
   const products = await prisma.product.findMany({
     where: { id: { in: productIds }, isActive: true },
-    select: { id: true, name: true, price: true, salePrice: true, stock: true },
+    select: { id: true, name: true, price: true, salePrice: true, stock: true, isActive: true },
   });
 
   if (products.length !== items.length) {
@@ -63,10 +63,10 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Calculate subtotal
+  // Calculate subtotal — prefer salePrice when set
   const lineItems = items.map((item) => {
     const product = products.find((p) => p.id === item.productId)!;
-    const unitPrice = Number(product.price);
+    const unitPrice = product.salePrice != null ? Number(product.salePrice) : Number(product.price);
     return { ...item, unitPrice, lineTotal: unitPrice * item.quantity, productName: product.name };
   });
 

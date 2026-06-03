@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     lowStockProducts,
     totalRevenue,
     monthRevenue,
+    lastMonthRevenue,
     recentOrders,
     topProducts,
     ordersByStatus,
@@ -41,6 +42,10 @@ export async function GET(request: NextRequest) {
     prisma.order.aggregate({
       _sum: { total: true },
       where: { paymentStatus: "PAID", createdAt: { gte: startOfMonth } },
+    }),
+    prisma.order.aggregate({
+      _sum: { total: true },
+      where: { paymentStatus: "PAID", createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } },
     }),
     prisma.order.findMany({
       take: 10,
@@ -73,9 +78,11 @@ export async function GET(request: NextRequest) {
     return { ...detail, totalSold: tp._sum.quantity };
   });
 
+  const thisMonthRev = Number(monthRevenue._sum.total || 0);
+  const prevMonthRev = Number(lastMonthRevenue._sum.total || 0);
   const revenueGrowth =
-    Number(monthRevenue._sum.total || 0) > 0 && lastMonthOrders > 0
-      ? (((Number(monthRevenue._sum.total || 0) - Number(lastMonthOrders)) / Number(lastMonthOrders)) * 100).toFixed(1)
+    prevMonthRev > 0
+      ? (((thisMonthRev - prevMonthRev) / prevMonthRev) * 100).toFixed(1)
       : "0";
 
   return NextResponse.json({
