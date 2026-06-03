@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
   const {
     name, description, price, salePrice, stock = 0, sku,
     categoryId, images = [], isActive = true, isFeatured = false,
+    isPopularBatter = false, isSpiceOil = false,
     weight, unit, tags = [],
   } = body;
 
@@ -95,6 +96,8 @@ export async function POST(request: NextRequest) {
       categoryId,
       isActive,
       isFeatured,
+      isPopularBatter,
+      isSpiceOil,
       weight: weight || null,
       unit: unit || null,
       tags,

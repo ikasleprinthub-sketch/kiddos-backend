@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get("search") || "";
   const category = searchParams.get("category") || "";
   const featured = searchParams.get("featured");
+  const popularBatter = searchParams.get("popularBatter");
+  const spiceOil = searchParams.get("spiceOil");
   const skip = (page - 1) * limit;
 
   const where: Record<string, unknown> = { isActive: true };
@@ -25,6 +27,14 @@ export async function GET(request: NextRequest) {
 
   if (featured === "true") {
     where.isFeatured = true;
+  }
+
+  if (popularBatter === "true") {
+    where.isPopularBatter = true;
+  }
+
+  if (spiceOil === "true") {
+    where.isSpiceOil = true;
   }
 
   const [products, total] = await Promise.all([

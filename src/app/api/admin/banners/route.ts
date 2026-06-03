@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   if (!title?.trim()) return NextResponse.json({ message: "Banner title is required" }, { status: 400 });
   if (!image?.trim()) return NextResponse.json({ message: "Banner image is required" }, { status: 400 });
 
-  const validPositions = ["HOME", "CATEGORY", "PRODUCT", "CHECKOUT"];
+  const validPositions = ["HOME", "PROMO", "CATEGORY", "PRODUCT", "CHECKOUT"];
   if (!validPositions.includes(position)) {
     return NextResponse.json({ message: "Invalid banner position" }, { status: 400 });
   }

@@ -37,7 +37,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const body = await request.json();
   const {
     name, description, price, salePrice, stock, sku,
-    categoryId, images, isActive, isFeatured, weight, unit, tags,
+    categoryId, images, isActive, isFeatured, isPopularBatter, isSpiceOil, weight, unit, tags,
   } = body;
 
   const existing = await prisma.product.findUnique({ where: { id } });
@@ -56,6 +56,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (categoryId !== undefined) updateData.categoryId = categoryId;
   if (isActive !== undefined) updateData.isActive = isActive;
   if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
+  if (isPopularBatter !== undefined) updateData.isPopularBatter = isPopularBatter;
+  if (isSpiceOil !== undefined) updateData.isSpiceOil = isSpiceOil;
   if (weight !== undefined) updateData.weight = weight || null;
   if (unit !== undefined) updateData.unit = unit;
   if (tags !== undefined) updateData.tags = tags;
