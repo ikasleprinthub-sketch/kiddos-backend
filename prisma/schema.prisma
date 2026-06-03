@@ -5,8 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
-
 }
 
 // ─── Users & Auth ────────────────────────────────────────────────────────────
@@ -73,9 +71,10 @@ model Product {
   weight      Decimal?       @db.Decimal(10, 3)
   unit        String?
   tags        String[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  orderItems  OrderItem[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  orderItems    OrderItem[]
+  wishlistItems WishlistItem[]
 
   @@map("products")
 }
