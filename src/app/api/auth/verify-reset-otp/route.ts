@@ -6,7 +6,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, otp } = body;
 
-    // 1. Basic validation
     if (!email || !otp) {
       return NextResponse.json(
         { message: "Email and OTP are required" },
@@ -14,13 +13,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Find matching OTP
+    const normalizedEmail = email.toLowerCase();
+
     const otpRecord = await prisma.oTP.findFirst({
-      where: {
-        email: email.toLowerCase(),
-        otp,
-        type: "RESET_PASSWORD",
-      },
+      where: { email: normalizedEmail, otp, type: "RESET_PASSWORD" },
     });
 
     if (!otpRecord) {
@@ -30,15 +26,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Check if expired
     if (new Date() > otpRecord.expiresAt) {
+      await prisma.oTP.delete({ where: { id: otpRecord.id } });
       return NextResponse.json(
-        { message: "OTP has expired. Please request a new OTP." },
+        { message: "OTP has expired. Please request a new one." },
         { status: 400 }
       );
     }
 
-    // OTP is valid. Return success.
     return NextResponse.json(
       {
         success: true,

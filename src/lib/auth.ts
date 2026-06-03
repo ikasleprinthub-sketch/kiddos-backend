@@ -10,7 +10,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "kiddos_super_secret_dev_key_at_lea
 
 export function generateToken(payload: TokenPayload): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+    expiresIn: (process.env.JWT_EXPIRES_IN || "7d") as jwt.SignOptions["expiresIn"],
   });
 }
 

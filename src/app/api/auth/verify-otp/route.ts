@@ -6,7 +6,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, otp } = body;
 
-    // 1. Basic validation
     if (!email || !otp) {
       return NextResponse.json(
         { message: "Email and OTP are required" },
@@ -14,13 +13,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Find matching OTP
+    const normalizedEmail = email.toLowerCase();
+
     const otpRecord = await prisma.oTP.findFirst({
-      where: {
-        email: email.toLowerCase(),
-        otp,
-        type: "VERIFY_EMAIL",
-      },
+      where: { email: normalizedEmail, otp, type: "VERIFY_EMAIL" },
     });
 
     if (!otpRecord) {
@@ -30,36 +26,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Check if expired
     if (new Date() > otpRecord.expiresAt) {
+      await prisma.oTP.delete({ where: { id: otpRecord.id } });
       return NextResponse.json(
-        { message: "OTP has expired. Please register again or request a new OTP." },
+        { message: "OTP has expired. Please request a new one." },
         { status: 400 }
       );
     }
 
-    // 4. Find and verify user
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    if (user.isVerified) {
+      await prisma.oTP.delete({ where: { id: otpRecord.id } });
       return NextResponse.json(
-        { message: "User not found" },
-        { status: 404 }
+        { message: "Account is already verified. You can log in." },
+        { status: 200 }
       );
     }
 
-    // Update user verification status
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { isVerified: true },
-    });
-
-    // Delete verified OTP record
-    await prisma.oTP.delete({
-      where: { id: otpRecord.id },
-    });
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { isVerified: true } }),
+      prisma.oTP.delete({ where: { id: otpRecord.id } }),
+    ]);
 
     return NextResponse.json(
       { message: "Account activated successfully! You can now log in." },

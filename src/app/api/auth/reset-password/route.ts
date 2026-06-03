@@ -7,7 +7,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, otp, newPassword } = body;
 
-    // 1. Basic validation
     if (!email || !otp || !newPassword) {
       return NextResponse.json(
         { message: "Email, OTP, and new password are required" },
@@ -22,13 +21,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Find matching OTP
+    const normalizedEmail = email.toLowerCase();
+
     const otpRecord = await prisma.oTP.findFirst({
-      where: {
-        email: email.toLowerCase(),
-        otp,
-        type: "RESET_PASSWORD",
-      },
+      where: { email: normalizedEmail, otp, type: "RESET_PASSWORD" },
     });
 
     if (!otpRecord) {
@@ -38,39 +34,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Check if expired
     if (new Date() > otpRecord.expiresAt) {
+      await prisma.oTP.delete({ where: { id: otpRecord.id } });
       return NextResponse.json(
-        { message: "OTP has expired. Please request a new OTP." },
+        { message: "OTP has expired. Please request a new one." },
         { status: 400 }
       );
     }
 
-    // 4. Find user
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {
-      return NextResponse.json(
-        { message: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // 5. Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // 6. Update user's password
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { password: hashedPassword },
-    });
-
-    // 7. Delete the verified OTP record
-    await prisma.oTP.delete({
-      where: { id: otpRecord.id },
-    });
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashedPassword },
+      }),
+      prisma.oTP.delete({ where: { id: otpRecord.id } }),
+    ]);
 
     return NextResponse.json(
       { message: "Password has been reset successfully. You can now log in with your new password." },
