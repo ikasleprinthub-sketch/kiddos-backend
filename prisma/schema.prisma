@@ -73,6 +73,12 @@ model Product {
   weight      Decimal?       @db.Decimal(10, 3)
   unit        String?
   tags        String[]
+  ingredients          String?
+  healthBenefits       String?
+  usageInstructions    String?
+  nutrientFacts        Json?
+  shelfLife            String?
+  storageInstructions  String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   orderItems    OrderItem[]
