@@ -20,7 +20,8 @@ model User {
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  orders     Order[]
+  orders        Order[]
+  wishlistItems WishlistItem[]
 
   @@map("users")
 }
@@ -65,11 +66,9 @@ model Product {
   categoryId  String
   category    Category       @relation(fields: [categoryId], references: [id])
   images      ProductImage[]
-  isActive        Boolean        @default(true)
-  isFeatured      Boolean        @default(false)
-  isPopularBatter Boolean        @default(false)
-  isSpiceOil      Boolean        @default(false)
-  weight          Decimal?       @db.Decimal(10, 3)
+  isActive    Boolean        @default(true)
+  isFeatured  Boolean        @default(false)
+  weight      Decimal?       @db.Decimal(10, 3)
   unit        String?
   tags        String[]
   createdAt   DateTime       @default(now())
@@ -126,6 +125,18 @@ model OrderItem {
   total     Decimal @db.Decimal(10, 2)
 
   @@map("order_items")
+}
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@map("wishlist_items")
 }
 
 // ─── Promotions ──────────────────────────────────────────────────────────────
