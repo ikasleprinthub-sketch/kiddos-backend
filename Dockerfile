@@ -5,9 +5,13 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --prefer-offline
 
-COPY tsconfig.json next.config.ts ./
+COPY tsconfig.json next.config.ts prisma.config.ts ./
+COPY prisma ./prisma
 COPY src ./src
 COPY public ./public
+
+# Generate Prisma client (v7: outputs to src/generated/prisma)
+RUN npx prisma generate
 
 # Build the Next.js app
 RUN npm run build
@@ -26,6 +30,8 @@ RUN npm ci --omit=dev --prefer-offline
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.ts ./
+# Copy generated Prisma client (v7 generates to src/generated/prisma)
+COPY --from=builder /app/src/generated ./src/generated
 
 EXPOSE 8000
 

@@ -1,4 +1,4 @@
-version: '3.9'
+# version: '3.9'
 
 services:
   postgres:
@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://kiddos_user:kiddos_pass@postgres:5432/kiddos_db
+      DATABASE_URL: postgresql://kiddos_user:kiddos_pass@postgres:5432/kiddos_db?sslmode=disable
       UPLOAD_DIR: /app/public/uploads
       PORT: 8000
     ports:
