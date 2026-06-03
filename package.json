@@ -14,7 +14,8 @@
     "jsonwebtoken": "^9.0.3",
     "next": "16.2.7",
     "nodemailer": "^8.0.10",
-    "pg": "^8.21.0"
+    "pg": "^8.21.0",
+    "razorpay": "^2.9.6"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
