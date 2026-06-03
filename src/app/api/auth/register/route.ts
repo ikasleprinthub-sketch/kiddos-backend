@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/services/email.service";
 
@@ -39,49 +38,61 @@ export async function POST(request: NextRequest) {
     // 3. Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Generate verification token
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-
-    // 5. Determine Role (default to USER, allow ADMIN if explicitly specified and valid)
+    // 4. Determine Role (default to USER)
     const finalRole = role === "ADMIN" ? "ADMIN" : "USER";
 
-    // 6. Create User in database
+    // 5. Create unverified User in database
     const user = await prisma.user.create({
       data: {
         name,
         email: email.toLowerCase(),
         password: hashedPassword,
-        verificationToken,
         role: finalRole,
+        isVerified: false,
       },
     });
 
-    // 7. Send Verification Email
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-    const verificationLink = `${frontendUrl}/verify-email/${verificationToken}`;
+    // 6. Generate 6-digit numeric OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
+    // Delete any old registration OTPs for this email to avoid clutter
+    await prisma.oTP.deleteMany({
+      where: {
+        email: user.email,
+        type: "VERIFY_EMAIL",
+      },
+    });
+
+    // Save the OTP in the database
+    await prisma.oTP.create({
+      data: {
+        email: user.email,
+        otp,
+        type: "VERIFY_EMAIL",
+        expiresAt,
+      },
+    });
+
+    // 7. Send OTP Email
     const htmlContent = `
-      <div style="font-family: sans-serif; padding: 20px; color: #333;">
-        <h2>Welcome to Kiddos Food!</h2>
+      <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 8px;">
+        <h2 style="color: #4CAF50; text-align: center;">Kiddos Food</h2>
         <p>Hi ${name},</p>
-        <p>Thank you for registering. Please verify your email address by clicking the link below:</p>
-        <p style="margin: 24px 0;">
-          <a href="${verificationLink}" style="background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
-            Verify Account
-          </a>
-        </p>
-        <p>If the button doesn't work, copy and paste this URL into your browser:</p>
-        <p><a href="${verificationLink}">${verificationLink}</a></p>
+        <p>Thank you for registering. Please use the following One-Time Password (OTP) to verify your account:</p>
+        <div style="background-color: #f9f9f9; border: 1px dashed #ccc; padding: 15px; font-size: 24px; font-weight: bold; text-align: center; letter-spacing: 5px; margin: 20px 0; color: #333;">
+          ${otp}
+        </div>
+        <p style="font-size: 0.9em; color: #666;">This OTP is valid for 10 minutes. Please do not share it with anyone.</p>
       </div>
     `;
 
-    // Fire-and-forget or await the email sending
-    await sendEmail(user.email, "Verify Your Email - Kiddos Food", htmlContent);
+    await sendEmail(user.email, "Verify Your Account - Kiddos Food", htmlContent);
 
-    // 8. Return user data (omit password)
+    // 8. Return response
     return NextResponse.json(
       {
-        message: "User registered successfully. Please check your email to verify your account.",
+        message: "Registration successful. Please check your email for the OTP.",
         user: {
           id: user.id,
           name: user.name,

@@ -51,17 +51,12 @@ export async function POST(request: NextRequest) {
       role: user.role,
     });
 
-    // 6. Build response
+    // 6. Build response using requested JSON format
     const response = NextResponse.json(
       {
-        message: "Login successful",
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
+        success: true,
         token,
+        role: user.role,
       },
       { status: 200 }
     );
@@ -74,7 +69,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/",
-      maxAge: 7 * 24 * 60 * 60, // 7 days matching JWT expiration
+      maxAge: 7 * 24 * 60 * 60, // 7 days
     });
 
     return response;

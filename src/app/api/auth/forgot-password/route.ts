@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/services/email.service";
 
@@ -24,44 +23,50 @@ export async function POST(request: NextRequest) {
     // Instead, return a generic success message, but only send the email if the user exists.
     if (!user) {
       return NextResponse.json(
-        { message: "If an account exists with that email, a password reset link has been sent." },
+        { message: "If an account exists with that email, a password reset OTP has been sent." },
         { status: 200 }
       );
     }
 
-    // 2. Generate reset token
-    const resetToken = crypto.randomBytes(32).toString("hex");
+    // 2. Generate 6-digit numeric Reset OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
-    // 3. Store reset token in the user record
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { resetToken },
+    // Delete any old reset OTP records for this email
+    await prisma.oTP.deleteMany({
+      where: {
+        email: user.email,
+        type: "RESET_PASSWORD",
+      },
+    });
+
+    // 3. Store Reset OTP in database
+    await prisma.oTP.create({
+      data: {
+        email: user.email,
+        otp,
+        type: "RESET_PASSWORD",
+        expiresAt,
+      },
     });
 
     // 4. Send Reset Email
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-    const resetLink = `${frontendUrl}/reset-password/${resetToken}`;
-
     const htmlContent = `
-      <div style="font-family: sans-serif; padding: 20px; color: #333;">
-        <h2>Reset Your Password</h2>
+      <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 8px;">
+        <h2 style="color: #f44336; text-align: center;">Reset Your Password</h2>
         <p>Hi ${user.name},</p>
-        <p>You requested a password reset. Please click the button below to set a new password:</p>
-        <p style="margin: 24px 0;">
-          <a href="${resetLink}" style="background-color: #f44336; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
-            Reset Password
-          </a>
-        </p>
-        <p>If the button doesn't work, copy and paste this URL into your browser:</p>
-        <p><a href="${resetLink}">${resetLink}</a></p>
-        <p style="font-size: 0.9em; color: #666; margin-top: 20px;">If you didn't request a password reset, please ignore this email.</p>
+        <p>You requested a password reset. Please use the following One-Time Password (OTP) to complete the process:</p>
+        <div style="background-color: #f9f9f9; border: 1px dashed #ccc; padding: 15px; font-size: 24px; font-weight: bold; text-align: center; letter-spacing: 5px; margin: 20px 0; color: #333;">
+          ${otp}
+        </div>
+        <p style="font-size: 0.9em; color: #666;">This OTP is valid for 10 minutes. If you did not request this, please ignore this email.</p>
       </div>
     `;
 
-    await sendEmail(user.email, "Reset Your Password - Kiddos Food", htmlContent);
+    await sendEmail(user.email, "Reset Password OTP - Kiddos Food", htmlContent);
 
     return NextResponse.json(
-      { message: "If an account exists with that email, a password reset link has been sent." },
+      { message: "If an account exists with that email, a password reset OTP has been sent." },
       { status: 200 }
     );
   } catch (error: any) {
