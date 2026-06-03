@@ -8,13 +8,21 @@
     "start": "next start"
   },
   "dependencies": {
-    "next": "16.2.7"
+    "@prisma/client": "^7.8.0",
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
+    "next": "16.2.7",
+    "nodemailer": "^8.0.10"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.0",
     "@types/react": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
+    "prisma": "^7.8.0",
     "typescript": "^5"
   }
 }

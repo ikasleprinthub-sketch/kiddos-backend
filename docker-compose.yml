@@ -1,0 +1,44 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kiddos_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kiddos_user
+      POSTGRES_PASSWORD: kiddos_pass
+      POSTGRES_DB: kiddos_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - kiddos_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U kiddos_user -d kiddos_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kiddos_backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://kiddos_user:kiddos_pass@postgres:5432/kiddos_db
+      UPLOAD_DIR: /app/public/uploads
+      PORT: 3000
+    ports:
+      - '3000:3000'
+    volumes:
+      # Mounts the local public/uploads directory to the container so pictures are persistent and visible locally
+      - ./public/uploads:/app/public/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  kiddos_pgdata:
+    driver: local
