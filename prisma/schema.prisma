@@ -5,6 +5,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+
 }
 
 // ─── Users & Auth ────────────────────────────────────────────────────────────
@@ -68,19 +70,12 @@ model Product {
   images      ProductImage[]
   isActive    Boolean        @default(true)
   isFeatured  Boolean        @default(false)
-  weight               Decimal?       @db.Decimal(10, 3)
-  unit                 String?
-  tags                 String[]
-  ingredients          String?
-  healthBenefits       String?
-  usageInstructions    String?
-  nutrientFacts        Json?
-  shelfLife            String?
-  storageInstructions  String?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  orderItems           OrderItem[]
-  wishlistItems        WishlistItem[]
+  weight      Decimal?       @db.Decimal(10, 3)
+  unit        String?
+  tags        String[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  orderItems  OrderItem[]
 
   @@map("products")
 }
@@ -229,6 +224,7 @@ enum CouponType {
 
 enum BannerPosition {
   HOME
+  PROMO
   CATEGORY
   PRODUCT
   CHECKOUT

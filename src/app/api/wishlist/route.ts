@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const user = await getUserFromRequest(req);
     if (!user) {
@@ -35,7 +35,7 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const user = await getUserFromRequest(req);
     if (!user) {
