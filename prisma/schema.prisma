@@ -67,7 +67,9 @@ model Product {
   category    Category       @relation(fields: [categoryId], references: [id])
   images      ProductImage[]
   isActive    Boolean        @default(true)
-  isFeatured  Boolean        @default(false)
+  isFeatured      Boolean        @default(false)
+  isPopularBatter Boolean        @default(false)
+  isSpiceOil      Boolean        @default(false)
   weight      Decimal?       @db.Decimal(10, 3)
   unit        String?
   tags        String[]

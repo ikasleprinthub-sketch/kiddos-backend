@@ -29,6 +29,14 @@ export async function GET(request: NextRequest) {
     where.isFeatured = true;
   }
 
+  if (popularBatter === "true") {
+    where.isPopularBatter = true;
+  }
+
+  if (spiceOil === "true") {
+    where.isSpiceOil = true;
+  }
+
   const [products, total] = await Promise.all([
     prisma.product.findMany({
       where,
