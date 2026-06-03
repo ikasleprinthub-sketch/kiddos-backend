@@ -3,10 +3,10 @@ import nodemailer from "nodemailer";
 export const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: Number(process.env.SMTP_PORT) || 587,
-  secure: false,
+  secure: false, // true for port 465, false for other ports
   auth: {
-    user: process.env.SMTP_USER || "yourmail@gmail.com",
-    pass: process.env.SMTP_PASS || "app_password",
+    user: process.env.SMTP_USER || "",
+    pass: process.env.SMTP_PASS || "",
   },
 });
 
@@ -15,15 +15,10 @@ export const sendEmail = async (
   subject: string,
   html: string
 ) => {
-  const isMock =
-    !process.env.SMTP_USER ||
-    process.env.SMTP_USER === "yourmail@gmail.com" ||
-    !process.env.SMTP_PASS ||
-    process.env.SMTP_PASS === "app_password";
-
-  if (isMock) {
+  // If credentials are empty, log immediately to avoid unnecessary connection timeouts
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.log("-----------------------------------------");
-    console.log(`[Email Service (MOCK)]`);
+    console.log(`[Email Service (MOCK - SMTP Credentials Missing)]`);
     console.log(`To: ${to}`);
     console.log(`Subject: ${subject}`);
     console.log(`HTML Body:`);
@@ -34,13 +29,14 @@ export const sendEmail = async (
 
   try {
     await transporter.sendMail({
-      from: `"Kiddos Food" <${process.env.SMTP_USER}>`,
+      from: `"${process.env.SMTP_FROM_NAME || "Kiddos Food"}" <${process.env.SMTP_USER}>`,
       to,
       subject,
       html,
     });
+    console.log(`Email successfully sent to ${to}`);
   } catch (error) {
-    console.error("Failed to send email via SMTP, logging instead:", error);
+    console.error("Failed to send email via SMTP, printing OTP to console instead. Error details:", error);
     console.log("-----------------------------------------");
     console.log(`[Email Service (FALLBACK LOG)]`);
     console.log(`To: ${to}`);
@@ -50,3 +46,4 @@ export const sendEmail = async (
     console.log("-----------------------------------------");
   }
 };
+
