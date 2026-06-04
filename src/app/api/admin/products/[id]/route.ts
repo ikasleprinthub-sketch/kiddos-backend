@@ -96,6 +96,17 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const existing = await prisma.product.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ message: "Product not found" }, { status: 404 });
 
+  const orderItemCount = await prisma.orderItem.count({ where: { productId: id } });
+  if (orderItemCount > 0) {
+    return NextResponse.json(
+      {
+        message: `Cannot delete this product — it appears in ${orderItemCount} order(s). Deactivate it instead to hide it from the store.`,
+        suggestion: "Set isActive to false to deactivate the product.",
+      },
+      { status: 409 }
+    );
+  }
+
   await prisma.product.delete({ where: { id } });
 
   return NextResponse.json({ message: "Product deleted" });

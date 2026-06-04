@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { sendOrderConfirmationEmail } from "@/services/email.service";
 
 function generateOrderNumber(): string {
   const timestamp = Date.now().toString(36).toUpperCase();
@@ -123,6 +124,30 @@ export async function POST(request: NextRequest) {
       items: { include: { product: { select: { id: true, name: true } } } },
     },
   });
+
+  // Send confirmation email (non-blocking — don't fail the response if email errors)
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { email: true, name: true },
+  });
+  if (dbUser?.email) {
+    sendOrderConfirmationEmail(dbUser.email, {
+      customerName: dbUser.name ?? shippingAddress.name,
+      orderNumber: order.orderNumber,
+      razorpayPaymentId,
+      items: order.items.map((item) => ({
+        name: item.product.name,
+        quantity: item.quantity,
+        price: Number(item.price),
+        total: Number(item.total),
+      })),
+      subtotal: Number(orderSummary.subtotal),
+      discount: Number(orderSummary.discount),
+      deliveryFee: Number(orderSummary.deliveryFee),
+      total: Number(orderSummary.total),
+      shippingAddress,
+    }).catch((err) => console.error("Order confirmation email failed:", err));
+  }
 
   return NextResponse.json({
     success: true,
