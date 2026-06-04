@@ -195,6 +195,44 @@ model Setting {
   @@map("settings")
 }
 
+// ─── Contact ─────────────────────────────────────────────────────────────────
+
+model ContactInquiry {
+  id        String                @id @default(uuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  status    ContactInquiryStatus  @default(OPEN)
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  @@map("contact_inquiries")
+}
+
+model FranchiseInquiry {
+  id                String   @id @default(uuid())
+  name              String
+  email             String
+  mobile            String
+  alternate         String?
+  preferredLocation String?
+  hearAboutUs       String?
+  country           String?
+  state             String?
+  city              String?
+  zipcode           String?
+  profession        String?
+  aboutBusiness     String?
+  package           String?
+  readyToStart      String?
+  message           String?
+  createdAt         DateTime @default(now())
+
+  @@map("franchise_inquiries")
+}
+
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 enum OTPType {
@@ -235,4 +273,10 @@ enum BannerPosition {
   CATEGORY
   PRODUCT
   CHECKOUT
+}
+
+enum ContactInquiryStatus {
+  OPEN
+  RESOLVED
+  CLOSED
 }
