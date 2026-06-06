@@ -7,19 +7,17 @@ datasource db {
   provider = "postgresql"
 }
 
-// ─── Users & Auth ────────────────────────────────────────────────────────────
-
 model User {
-  id         String   @id @default(uuid())
-  name       String
-  email      String   @unique
-  password   String
-  role       Role     @default(USER)
-  isVerified Boolean  @default(false)
-  phone      String?
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  password      String
+  role          Role           @default(USER)
+  isVerified    Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  isActive      Boolean        @default(true)
+  phone         String?
+  updatedAt     DateTime       @updatedAt
   orders        Order[]
   wishlistItems WishlistItem[]
 
@@ -37,8 +35,6 @@ model OTP {
   @@map("otps")
 }
 
-// ─── Catalog ─────────────────────────────────────────────────────────────────
-
 model Category {
   id          String    @id @default(uuid())
   name        String    @unique
@@ -55,34 +51,34 @@ model Category {
 }
 
 model Product {
-  id          String         @id @default(uuid())
-  name        String
-  slug        String         @unique
-  description String?
-  price       Decimal        @db.Decimal(10, 2)
-  salePrice   Decimal?       @db.Decimal(10, 2)
-  stock       Int            @default(0)
-  sku         String?        @unique
-  categoryId  String
-  category    Category       @relation(fields: [categoryId], references: [id])
-  images      ProductImage[]
-  isActive    Boolean        @default(true)
-  isFeatured      Boolean        @default(false)
-  isPopularBatter Boolean        @default(false)
-  isSpiceOil      Boolean        @default(false)
-  weight      Decimal?       @db.Decimal(10, 3)
-  unit        String?
-  tags        String[]
-  ingredients          String?
-  healthBenefits       String?
-  usageInstructions    String?
-  nutrientFacts        Json?
-  shelfLife            String?
-  storageInstructions  String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  orderItems    OrderItem[]
-  wishlistItems WishlistItem[]
+  id                  String         @id @default(uuid())
+  name                String
+  slug                String         @unique
+  description         String?
+  price               Decimal        @db.Decimal(10, 2)
+  salePrice           Decimal?       @db.Decimal(10, 2)
+  stock               Int            @default(0)
+  sku                 String?        @unique
+  categoryId          String
+  isActive            Boolean        @default(true)
+  isFeatured          Boolean        @default(false)
+  weight              Decimal?       @db.Decimal(10, 3)
+  unit                String?
+  tags                String[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  isPopularBatter     Boolean        @default(false)
+  isSpiceOil          Boolean        @default(false)
+  healthBenefits      String?
+  ingredients         String?
+  nutrientFacts       Json?
+  shelfLife           String?
+  storageInstructions String?
+  usageInstructions   String?
+  orderItems          OrderItem[]
+  images              ProductImage[]
+  category            Category       @relation(fields: [categoryId], references: [id])
+  wishlistItems       WishlistItem[]
 
   @@map("products")
 }
@@ -90,21 +86,18 @@ model Product {
 model ProductImage {
   id        String   @id @default(uuid())
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   url       String
   isPrimary Boolean  @default(false)
   createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("product_images")
 }
-
-// ─── Orders ──────────────────────────────────────────────────────────────────
 
 model Order {
   id              String        @id @default(uuid())
   orderNumber     String        @unique
   userId          String
-  user            User          @relation(fields: [userId], references: [id])
   status          OrderStatus   @default(PENDING)
   paymentStatus   PaymentStatus @default(PENDING)
   paymentMethod   String?
@@ -113,12 +106,13 @@ model Order {
   deliveryFee     Decimal       @default(0) @db.Decimal(10, 2)
   total           Decimal       @db.Decimal(10, 2)
   couponId        String?
-  coupon          Coupon?       @relation(fields: [couponId], references: [id])
   notes           String?
   shippingAddress Json
-  items           OrderItem[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  items           OrderItem[]
+  coupon          Coupon?       @relation(fields: [couponId], references: [id])
+  user            User          @relation(fields: [userId], references: [id])
 
   @@map("orders")
 }
@@ -126,12 +120,12 @@ model Order {
 model OrderItem {
   id        String  @id @default(uuid())
   orderId   String
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String
-  product   Product @relation(fields: [productId], references: [id])
   quantity  Int
   price     Decimal @db.Decimal(10, 2)
   total     Decimal @db.Decimal(10, 2)
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
 
   @@map("order_items")
 }
@@ -139,16 +133,14 @@ model OrderItem {
 model WishlistItem {
   id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
   @@map("wishlist_items")
 }
-
-// ─── Promotions ──────────────────────────────────────────────────────────────
 
 model Coupon {
   id             String     @id @default(uuid())
@@ -182,8 +174,6 @@ model Banner {
   @@map("banners")
 }
 
-// ─── Settings ────────────────────────────────────────────────────────────────
-
 model Setting {
   id        String   @id @default(uuid())
   key       String   @unique
@@ -195,18 +185,16 @@ model Setting {
   @@map("settings")
 }
 
-// ─── Contact ─────────────────────────────────────────────────────────────────
-
 model ContactInquiry {
-  id        String                @id @default(uuid())
+  id        String               @id @default(uuid())
   name      String
   email     String
   phone     String?
   subject   String
   message   String
-  status    ContactInquiryStatus  @default(OPEN)
-  createdAt DateTime              @default(now())
-  updatedAt DateTime              @updatedAt
+  status    ContactInquiryStatus @default(OPEN)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
 
   @@map("contact_inquiries")
 }
@@ -232,8 +220,6 @@ model FranchiseInquiry {
 
   @@map("franchise_inquiries")
 }
-
-// ─── Enums ───────────────────────────────────────────────────────────────────
 
 enum OTPType {
   VERIFY_EMAIL
@@ -269,10 +255,10 @@ enum CouponType {
 
 enum BannerPosition {
   HOME
-  PROMO
   CATEGORY
   PRODUCT
   CHECKOUT
+  PROMO
 }
 
 enum ContactInquiryStatus {
