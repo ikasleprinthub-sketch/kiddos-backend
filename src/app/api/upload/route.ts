@@ -4,17 +4,20 @@ import { writeFile, mkdir } from "fs/promises";
 import { join, extname } from "path";
 import { randomUUID } from "crypto";
 
-const UPLOAD_DIR = process.env.UPLOAD_DIR || "C:\\Users\\Administrator\\Documents\\KiddosFood\\uploads";
+const UPLOAD_DIR = process.env.UPLOAD_DIR || join(process.cwd(), "uploads");
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 export async function POST(request: NextRequest) {
-  const admin = authorizeAdmin(request);
-  if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
-
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
   const folder = (formData.get("folder") as string) || "general";
+
+  // Allow public uploads only for the franchises folder, otherwise require admin auth
+  if (folder !== "franchises") {
+    const admin = authorizeAdmin(request);
+    if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
+  }
 
   if (!file) return NextResponse.json({ message: "No file provided" }, { status: 400 });
   if (!ALLOWED_TYPES.includes(file.type)) {
