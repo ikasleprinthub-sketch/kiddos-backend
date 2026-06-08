@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
       orderNumber: order.orderNumber,
       razorpayPaymentId,
       items: order.items.map((item) => ({
-        name: item.product.name,
+        name: item.product.name ?? "Unnamed Product",
         quantity: item.quantity,
         price: Number(item.price),
         total: Number(item.total),

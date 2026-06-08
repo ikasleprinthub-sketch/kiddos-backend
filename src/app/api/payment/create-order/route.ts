@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const product = products.find((p) => p.id === item.productId)!;
     if (product.stock < item.quantity) {
       return NextResponse.json(
-        { message: `Insufficient stock for "${product.name}" (available: ${product.stock})` },
+        { message: `Insufficient stock for "${product.name ?? "Unnamed Product"}" (available: ${product.stock})` },
         { status: 400 }
       );
     }
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
   const lineItems = items.map((item) => {
     const product = products.find((p) => p.id === item.productId)!;
     const unitPrice = product.salePrice != null ? Number(product.salePrice) : Number(product.price);
-    return { ...item, unitPrice, lineTotal: unitPrice * item.quantity, productName: product.name };
+    return { ...item, unitPrice, lineTotal: unitPrice * item.quantity, productName: product.name ?? "Unnamed Product" };
   });
 
   const subtotal = lineItems.reduce((sum, li) => sum + li.lineTotal, 0);
