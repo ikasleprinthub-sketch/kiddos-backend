@@ -216,6 +216,7 @@ model FranchiseInquiry {
   package           String?
   readyToStart      String?
   message           String?
+  image             String?
   createdAt         DateTime @default(now())
 
   @@map("franchise_inquiries")
