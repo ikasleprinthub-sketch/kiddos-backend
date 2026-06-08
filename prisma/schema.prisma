@@ -31,6 +31,7 @@ model OTP {
   type      OTPType
   expiresAt DateTime
   createdAt DateTime @default(now())
+  tempData  Json?
 
   @@map("otps")
 }
@@ -222,9 +223,21 @@ model FranchiseInquiry {
   @@map("franchise_inquiries")
 }
 
+model FranchiseDownload {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  mobile    String
+  resource  String   // "BROCHURE" or "APPLICATION_FORM"
+  createdAt DateTime @default(now())
+
+  @@map("franchise_downloads")
+}
+
 enum OTPType {
   VERIFY_EMAIL
   RESET_PASSWORD
+  DOWNLOAD_VERIFICATION
 }
 
 enum Role {

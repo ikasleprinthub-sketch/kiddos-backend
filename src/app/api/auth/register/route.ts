@@ -41,40 +41,36 @@ export async function POST(request: NextRequest) {
     // 4. Determine Role (default to USER)
     const finalRole = role === "ADMIN" ? "ADMIN" : "USER";
 
-    // 5. Create unverified User in database
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email: email.toLowerCase(),
-        password: hashedPassword,
-        role: finalRole,
-        isVerified: false,
-      },
-    });
-
-    // 6. Generate 6-digit numeric OTP
+    // 5. Generate 6-digit numeric OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+
+    const normalizedEmail = email.toLowerCase();
 
     // Delete any old registration OTPs for this email to avoid clutter
     await prisma.oTP.deleteMany({
       where: {
-        email: user.email,
+        email: normalizedEmail,
         type: "VERIFY_EMAIL",
       },
     });
 
-    // Save the OTP in the database
+    // Save the OTP in the database with temp user data in tempData
     await prisma.oTP.create({
       data: {
-        email: user.email,
+        email: normalizedEmail,
         otp,
         type: "VERIFY_EMAIL",
         expiresAt,
+        tempData: {
+          name,
+          password: hashedPassword,
+          role: finalRole,
+        },
       },
     });
 
-    // 7. Send OTP Email
+    // 6. Send OTP Email
     const htmlContent = `
       <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 8px;">
         <h2 style="color: #4CAF50; text-align: center;">Kiddos Food</h2>
@@ -87,18 +83,17 @@ export async function POST(request: NextRequest) {
       </div>
     `;
 
-    await sendEmail(user.email, "Verify Your Account - Kiddos Food", htmlContent);
+    await sendEmail(normalizedEmail, "Verify Your Account - Kiddos Food", htmlContent);
 
-    // 8. Return response
+    // 7. Return response
     return NextResponse.json(
       {
         message: "Registration successful. Please check your email for the OTP.",
         user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          isVerified: user.isVerified,
+          name,
+          email: normalizedEmail,
+          role: finalRole,
+          isVerified: false,
         },
       },
       { status: 201 }

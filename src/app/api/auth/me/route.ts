@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
         email: true,
         role: true,
         isVerified: true,
+        isActive: true,
       },
     });
 
@@ -35,6 +36,13 @@ export async function GET(request: NextRequest) {
     if (!user.isVerified) {
       return NextResponse.json(
         { message: "Please verify your email address before continuing" },
+        { status: 403 }
+      );
+    }
+
+    if (!user.isActive) {
+      return NextResponse.json(
+        { message: "Your account is suspended. Please contact support." },
         { status: 403 }
       );
     }
@@ -77,6 +85,10 @@ export async function PUT(request: NextRequest) {
 
     const user = await prisma.user.findUnique({ where: { id: payload.id } });
     if (!user) return NextResponse.json({ message: "User not found" }, { status: 404 });
+
+    if (!user.isActive) {
+      return NextResponse.json({ message: "Your account is suspended. Please contact support." }, { status: 403 });
+    }
 
     const updateData: Record<string, unknown> = {};
 

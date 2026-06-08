@@ -22,6 +22,21 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
+      // Check if there is a pending registration OTP
+      const pendingOtp = await prisma.oTP.findFirst({
+        where: {
+          email: email.toLowerCase(),
+          type: "VERIFY_EMAIL",
+        },
+      });
+
+      if (pendingOtp) {
+        return NextResponse.json(
+          { message: "Please verify your email address before logging in." },
+          { status: 403 }
+        );
+      }
+
       return NextResponse.json(
         { message: "Invalid email or password" },
         { status: 401 }
@@ -41,6 +56,14 @@ export async function POST(request: NextRequest) {
     if (!user.isVerified) {
       return NextResponse.json(
         { message: "Please verify your email address before logging in." },
+        { status: 403 }
+      );
+    }
+
+    // 4.5. Check if user is active (not suspended)
+    if (!user.isActive) {
+      return NextResponse.json(
+        { message: "Your account is suspended. Please contact support." },
         { status: 403 }
       );
     }
