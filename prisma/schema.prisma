@@ -56,10 +56,10 @@ model Category {
 
 model Product {
   id          String         @id @default(uuid())
-  name        String
+  name        String?
   slug        String         @unique
   description String?
-  price       Decimal        @db.Decimal(10, 2)
+  price       Decimal?       @db.Decimal(10, 2)
   salePrice   Decimal?       @db.Decimal(10, 2)
   stock       Int            @default(0)
   sku         String?        @unique
