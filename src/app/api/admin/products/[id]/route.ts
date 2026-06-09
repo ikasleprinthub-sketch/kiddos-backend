@@ -91,11 +91,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     };
   }
 
-  if (variants !== undefined) {
+  if (variants !== undefined && Array.isArray(variants)) {
     await prisma.productVariant.deleteMany({ where: { productId: id } });
     updateData.variants = {
       create: variants.map((v: any) => ({
-        id: v.id || undefined,
         weight: v.weight ? Number(v.weight) : null,
         unit: v.unit || null,
         price: Number(v.price),
