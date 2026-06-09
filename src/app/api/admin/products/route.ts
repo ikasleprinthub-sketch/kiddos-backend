@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
     isPopularBatter = false, isSpiceOil = false,
     weight, unit, tags = [],
     ingredients, healthBenefits, usageInstructions, nutrientFacts, shelfLife, storageInstructions,
+    variants = [],
   } = body;
 
   if (!name?.trim()) return NextResponse.json({ message: "Product name is required" }, { status: 400 });
@@ -111,10 +112,22 @@ export async function POST(request: NextRequest) {
       images: {
         create: images.map((url: string, i: number) => ({ url, isPrimary: i === 0 })),
       },
+      variants: variants.length > 0 ? {
+        create: variants.map((v: any) => ({
+          weight: v.weight ? Number(v.weight) : null,
+          unit: v.unit || null,
+          price: Number(v.price),
+          salePrice: v.salePrice ? Number(v.salePrice) : null,
+          stock: Number(v.stock) || 0,
+          sku: v.sku || null,
+          isActive: v.isActive ?? true,
+        }))
+      } : undefined,
     },
     include: {
       category: { select: { id: true, name: true } },
       images: true,
+      variants: true,
     },
   });
 

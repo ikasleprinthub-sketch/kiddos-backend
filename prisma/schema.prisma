@@ -80,8 +80,27 @@ model Product {
   images              ProductImage[]
   category            Category       @relation(fields: [categoryId], references: [id])
   wishlistItems       WishlistItem[]
+  variants            ProductVariant[]
 
   @@map("products")
+}
+
+model ProductVariant {
+  id        String   @id @default(uuid())
+  productId String
+  weight    Decimal? @db.Decimal(10, 3)
+  unit      String?
+  price     Decimal  @db.Decimal(10, 2)
+  salePrice Decimal? @db.Decimal(10, 2)
+  stock     Int      @default(0)
+  sku       String?  @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_variants")
 }
 
 model ProductImage {

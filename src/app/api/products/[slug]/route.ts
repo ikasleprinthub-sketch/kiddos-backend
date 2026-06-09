@@ -19,6 +19,7 @@ export async function GET(
           select: { url: true, isPrimary: true },
           orderBy: { isPrimary: "desc" },
         },
+        variants: true,
       },
     });
 
