@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { message: "Invalid email or password" },
-        { status: 401 }
+        { message: "User not found" },
+        { status: 404 }
       );
     }
 

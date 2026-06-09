@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
       include: {
         category: { select: { id: true, name: true, slug: true } },
         images: { select: { url: true, isPrimary: true }, orderBy: { isPrimary: "desc" } },
+        variants: true,
       },
     }),
     prisma.product.count({ where }),

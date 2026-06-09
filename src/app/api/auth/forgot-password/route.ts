@@ -19,12 +19,10 @@ export async function POST(request: NextRequest) {
       where: { email: email.toLowerCase() },
     });
 
-    // Security practice: Don't reveal if a user exists or not to prevent user enumeration attacks.
-    // Instead, return a generic success message, but only send the email if the user exists.
     if (!user) {
       return NextResponse.json(
-        { message: "If an account exists with that email, a password reset OTP has been sent." },
-        { status: 200 }
+        { message: "User not found" },
+        { status: 404 }
       );
     }
 
@@ -66,7 +64,7 @@ export async function POST(request: NextRequest) {
     await sendEmail(user.email, "Reset Password OTP - Kiddos Food", htmlContent);
 
     return NextResponse.json(
-      { message: "If an account exists with that email, a password reset OTP has been sent." },
+      { message: "Password reset OTP has been sent to your email." },
       { status: 200 }
     );
   } catch (error: any) {
