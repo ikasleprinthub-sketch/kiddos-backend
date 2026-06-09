@@ -30,26 +30,39 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = authorizeAdmin(request);
-  if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
+  try {
+    const admin = authorizeAdmin(request);
+    if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
 
-  const { id } = await params;
-  const body = await request.json();
-  const {
-    name, description, price, salePrice, stock, sku,
-    categoryId, images, isActive, isFeatured, isPopularBatter, isSpiceOil, weight, unit, tags,
-    ingredients, healthBenefits, usageInstructions, nutrientFacts, shelfLife, storageInstructions,
-    variants,
-  } = body;
+    const { id } = await params;
+    const body = await request.json();
+    const {
+      name, description, price, salePrice, stock, sku,
+      categoryId, images, isActive, isFeatured, isPopularBatter, isSpiceOil, weight, unit, tags,
+      ingredients, healthBenefits, usageInstructions, nutrientFacts, shelfLife, storageInstructions,
+      variants,
+    } = body;
 
-  const existing = await prisma.product.findUnique({ where: { id } });
-  if (!existing) return NextResponse.json({ message: "Product not found" }, { status: 404 });
+    const existing = await prisma.product.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ message: "Product not found" }, { status: 404 });
 
-  const updateData: Record<string, unknown> = {};
-  if (name !== undefined) {
-    updateData.name = name.trim();
-    updateData.slug = slugify(name);
-  }
+    const updateData: Record<string, unknown> = {};
+    if (name !== undefined) {
+      updateData.name = name.trim();
+      const newSlug = slugify(name);
+
+      // Only update slug if it's different to avoid unnecessary unique constraint checks
+      if (newSlug !== existing.slug) {
+        const slugExists = await prisma.product.findUnique({ where: { slug: newSlug } });
+        if (slugExists) {
+          return NextResponse.json(
+            { message: `A product with the slug "${newSlug}" already exists` },
+            { status: 409 }
+          );
+        }
+        updateData.slug = newSlug;
+      }
+    }
   if (description !== undefined) updateData.description = description;
   if (price !== undefined) updateData.price = price;
   if (salePrice !== undefined) updateData.salePrice = salePrice || null;
@@ -93,17 +106,31 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     };
   }
 
-  const product = await prisma.product.update({
-    where: { id },
-    data: updateData,
-    include: {
-      category: { select: { id: true, name: true } },
-      images: true,
-      variants: true,
-    },
-  });
+    const product = await prisma.product.update({
+      where: { id },
+      data: updateData,
+      include: {
+        category: { select: { id: true, name: true } },
+        images: true,
+        variants: true,
+      },
+    });
 
-  return NextResponse.json({ product });
+    return NextResponse.json({ product });
+  } catch (error: any) {
+    console.error("Product update error:", error);
+    if (error.code === "P2002") {
+      const target = error.meta?.target?.[0];
+      return NextResponse.json(
+        { message: `A product with this ${target} already exists` },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json(
+      { message: "Failed to update product" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
