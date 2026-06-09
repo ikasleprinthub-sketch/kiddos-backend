@@ -21,6 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     include: {
       category: true,
       images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
+      variants: { orderBy: { createdAt: "asc" } },
     },
   });
 
