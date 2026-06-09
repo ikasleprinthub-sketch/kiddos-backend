@@ -91,18 +91,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     };
   }
 
-  if (variants !== undefined && Array.isArray(variants)) {
+  if (variants !== undefined && Array.isArray(variants) && variants.length > 0) {
     await prisma.productVariant.deleteMany({ where: { productId: id } });
     updateData.variants = {
-      create: variants.map((v: any) => ({
-        weight: v.weight ? Number(v.weight) : null,
-        unit: v.unit || null,
-        price: Number(v.price),
-        salePrice: v.salePrice ? Number(v.salePrice) : null,
-        stock: Number(v.stock) || 0,
-        sku: v.sku || null,
-        isActive: v.isActive ?? true,
-      })),
+      create: variants
+        .filter((v: any) => v && v.price !== undefined && v.price !== null)
+        .map((v: any) => ({
+          weight: v.weight ? Number(v.weight) : null,
+          unit: v.unit || null,
+          price: Number(v.price),
+          salePrice: v.salePrice ? Number(v.salePrice) : null,
+          stock: Number(v.stock) || 0,
+          sku: v.sku || null,
+          isActive: v.isActive ?? true,
+        })),
     };
   }
 
@@ -110,7 +112,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       where: { id },
       data: updateData,
       include: {
-        category: { select: { id: true, name: true } },
+        category: true,
         images: true,
         variants: true,
       },
