@@ -53,83 +53,100 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const admin = authorizeAdmin(request);
-  if (!admin) {
-    return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
-  }
+  try {
+    const admin = authorizeAdmin(request);
+    if (!admin) {
+      return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
+    }
 
-  const body = await request.json();
-  const {
-    name, description, price, salePrice, stock = 0, sku,
-    categoryId, images = [], isActive = true, isFeatured = false,
-    isPopularBatter = false, isSpiceOil = false,
-    weight, unit, tags = [],
-    ingredients, healthBenefits, usageInstructions, nutrientFacts, shelfLife, storageInstructions,
-    variants = [],
-  } = body;
+    const body = await request.json();
+    const {
+      name, description, price, salePrice, stock = 0, sku,
+      categoryId, images = [], isActive = true, isFeatured = false,
+      isPopularBatter = false, isSpiceOil = false,
+      weight, unit, tags = [],
+      ingredients, healthBenefits, usageInstructions, nutrientFacts, shelfLife, storageInstructions,
+      variants = [],
+    } = body;
 
-  if (!name?.trim()) return NextResponse.json({ message: "Product name is required" }, { status: 400 });
-  if (!price || isNaN(Number(price))) return NextResponse.json({ message: "Valid price is required" }, { status: 400 });
-  if (!categoryId) return NextResponse.json({ message: "Category is required" }, { status: 400 });
+    if (!name?.trim()) return NextResponse.json({ message: "Product name is required" }, { status: 400 });
+    if (!price || isNaN(Number(price))) return NextResponse.json({ message: "Valid price is required" }, { status: 400 });
+    if (!categoryId) return NextResponse.json({ message: "Category is required" }, { status: 400 });
 
-  const slug = slugify(name);
-  const existingSlug = await prisma.product.findUnique({ where: { slug } });
-  if (existingSlug) {
-    return NextResponse.json({ message: "A product with this name already exists" }, { status: 409 });
-  }
+    const slug = slugify(name);
+    const existingSlug = await prisma.product.findUnique({ where: { slug } });
+    if (existingSlug) {
+      return NextResponse.json({ message: "A product with this name already exists" }, { status: 409 });
+    }
 
-  if (sku) {
-    const existingSku = await prisma.product.findUnique({ where: { sku } });
-    if (existingSku) return NextResponse.json({ message: "SKU already in use" }, { status: 409 });
-  }
+    if (sku) {
+      const existingSku = await prisma.product.findUnique({ where: { sku } });
+      if (existingSku) return NextResponse.json({ message: "SKU already in use" }, { status: 409 });
+    }
 
-  const category = await prisma.category.findUnique({ where: { id: categoryId } });
-  if (!category) return NextResponse.json({ message: "Category not found" }, { status: 404 });
+    const category = await prisma.category.findUnique({ where: { id: categoryId } });
+    if (!category) return NextResponse.json({ message: "Category not found" }, { status: 404 });
 
-  const product = await prisma.product.create({
-    data: {
-      name: name.trim(),
-      slug,
-      description,
-      price,
-      salePrice: salePrice || null,
-      stock,
-      sku: sku || null,
-      categoryId,
-      isActive,
-      isFeatured,
-      isPopularBatter,
-      isSpiceOil,
-      weight: weight || null,
-      unit: unit || null,
-      tags,
-      ingredients: ingredients || null,
-      healthBenefits: healthBenefits || null,
-      usageInstructions: usageInstructions || null,
-      nutrientFacts: nutrientFacts || undefined,
-      shelfLife: shelfLife || null,
-      storageInstructions: storageInstructions || null,
-      images: {
-        create: images.map((url: string, i: number) => ({ url, isPrimary: i === 0 })),
+    const product = await prisma.product.create({
+      data: {
+        name: name.trim(),
+        slug,
+        description,
+        price: Number(price),
+        salePrice: salePrice ? Number(salePrice) : null,
+        stock: Number(stock),
+        sku: sku || null,
+        categoryId,
+        isActive,
+        isFeatured,
+        isPopularBatter,
+        isSpiceOil,
+        weight: weight ? Number(weight) : null,
+        unit: unit || null,
+        tags,
+        ingredients: ingredients || null,
+        healthBenefits: healthBenefits || null,
+        usageInstructions: usageInstructions || null,
+        nutrientFacts: nutrientFacts || undefined,
+        shelfLife: shelfLife || null,
+        storageInstructions: storageInstructions || null,
+        images: {
+          create: images.map((url: string, i: number) => ({ url, isPrimary: i === 0 })),
+        },
+        variants: variants.length > 0 ? {
+          create: variants
+            .filter((v: any) => v && v.price !== undefined && v.price !== null)
+            .map((v: any) => ({
+              weight: v.weight ? Number(v.weight) : null,
+              unit: v.unit || null,
+              price: Number(v.price),
+              salePrice: v.salePrice ? Number(v.salePrice) : null,
+              stock: Number(v.stock) || 0,
+              sku: v.sku || null,
+              isActive: v.isActive ?? true,
+            }))
+        } : undefined,
       },
-      variants: variants.length > 0 ? {
-        create: variants.map((v: any) => ({
-          weight: v.weight ? Number(v.weight) : null,
-          unit: v.unit || null,
-          price: Number(v.price),
-          salePrice: v.salePrice ? Number(v.salePrice) : null,
-          stock: Number(v.stock) || 0,
-          sku: v.sku || null,
-          isActive: v.isActive ?? true,
-        }))
-      } : undefined,
-    },
-    include: {
-      category: { select: { id: true, name: true } },
-      images: true,
-      variants: true,
-    },
-  });
+      include: {
+        category: { select: { id: true, name: true } },
+        images: true,
+        variants: true,
+      },
+    });
 
-  return NextResponse.json({ product }, { status: 201 });
+    return NextResponse.json({ product }, { status: 201 });
+  } catch (error: any) {
+    console.error("Product creation error:", error);
+    if (error.code === "P2002") {
+      const target = error.meta?.target?.[0];
+      return NextResponse.json(
+        { message: `A product with this ${target} already exists` },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json(
+      { message: error.message || "Failed to create product" },
+      { status: 500 }
+    );
+  }
 }
