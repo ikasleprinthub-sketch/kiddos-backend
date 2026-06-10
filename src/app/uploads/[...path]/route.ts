@@ -13,7 +13,7 @@ export async function GET(
   }
 
   // Base directory for uploads
-  const UPLOAD_DIR = process.env.UPLOAD_DIR || join(process.cwd(), "uploads");
+  const UPLOAD_DIR = process.env.UPLOAD_DIR || join(/*turbopackIgnore: true*/ process.cwd(), "uploads");
   
   // Construct the resolved path
   const relativePath = join(...path);
