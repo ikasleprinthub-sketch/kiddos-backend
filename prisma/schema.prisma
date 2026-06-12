@@ -181,7 +181,7 @@ model Coupon {
 
 model Banner {
   id        String         @id @default(uuid())
-  title     String
+  title     String?
   subtitle  String?
   image     String
   link      String?
