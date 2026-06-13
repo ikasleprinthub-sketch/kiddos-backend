@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "pg", "razorpay"],
   experimental: {
     serverActions: {
-      bodySizeLimit: "5mb",
+      bodySizeLimit: "10mb",
     },
   },
   async headers() {
