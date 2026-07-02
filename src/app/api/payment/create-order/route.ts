@@ -49,7 +49,10 @@ export async function POST(request: NextRequest) {
   });
 
   if (products.length !== items.length) {
-    return NextResponse.json({ message: "One or more products are unavailable" }, { status: 400 });
+    const foundIds = new Set(products.map(p => p.id));
+    const missingItems = items.filter(i => !foundIds.has(i.productId));
+    const missingIds = missingItems.map(i => i.productId).join(", ");
+    return NextResponse.json({ message: `One or more products are unavailable or deleted. Missing product IDs: ${missingIds}. Please remove them from your cart.` }, { status: 400 });
   }
 
   // Verify stock
