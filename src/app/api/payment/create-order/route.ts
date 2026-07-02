@@ -41,19 +41,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Complete shipping address is required" }, { status: 400 });
   }
 
+  // Consolidate duplicate items in the cart
+  const consolidatedItemsMap = new Map<string, CartItem>();
+  for (const item of items) {
+    if (consolidatedItemsMap.has(item.productId)) {
+      consolidatedItemsMap.get(item.productId)!.quantity += item.quantity;
+    } else {
+      consolidatedItemsMap.set(item.productId, { ...item });
+    }
+  }
+  const uniqueItems = Array.from(consolidatedItemsMap.values());
+
   // Load and validate products
-  const productIds = items.map((i) => i.productId);
+  const productIds = uniqueItems.map((i) => i.productId);
   const products = await prisma.product.findMany({
     where: { id: { in: productIds }, isActive: true },
     select: { id: true, name: true, price: true, salePrice: true, stock: true, isActive: true },
   });
 
-  if (products.length !== items.length) {
+  if (products.length !== uniqueItems.length) {
     return NextResponse.json({ message: "One or more products are unavailable" }, { status: 400 });
   }
 
   // Verify stock
-  for (const item of items) {
+  for (const item of uniqueItems) {
     const product = products.find((p) => p.id === item.productId)!;
     if (product.stock < item.quantity) {
       return NextResponse.json(
@@ -64,7 +75,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Calculate subtotal — prefer salePrice when set
-  const lineItems = items.map((item) => {
+  const lineItems = uniqueItems.map((item) => {
     const product = products.find((p) => p.id === item.productId)!;
     const unitPrice = product.salePrice != null ? Number(product.salePrice) : Number(product.price);
     return { ...item, unitPrice, lineTotal: unitPrice * item.quantity, productName: product.name ?? "Unnamed Product" };
