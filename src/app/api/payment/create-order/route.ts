@@ -5,6 +5,7 @@ import { razorpay } from "@/lib/razorpay";
 
 interface CartItem {
   productId: string;
+  variantId?: string;
   quantity: number;
 }
 
@@ -44,10 +45,11 @@ export async function POST(request: NextRequest) {
   // Consolidate duplicate items in the cart
   const consolidatedItemsMap = new Map<string, CartItem>();
   for (const item of items) {
-    if (consolidatedItemsMap.has(item.productId)) {
-      consolidatedItemsMap.get(item.productId)!.quantity += item.quantity;
+    const key = item.variantId ? `${item.productId}-${item.variantId}` : item.productId;
+    if (consolidatedItemsMap.has(key)) {
+      consolidatedItemsMap.get(key)!.quantity += item.quantity;
     } else {
-      consolidatedItemsMap.set(item.productId, { ...item });
+      consolidatedItemsMap.set(key, { ...item });
     }
   }
   const uniqueItems = Array.from(consolidatedItemsMap.values());
@@ -56,7 +58,23 @@ export async function POST(request: NextRequest) {
   const productIds = uniqueItems.map((i) => i.productId);
   const products = await prisma.product.findMany({
     where: { id: { in: productIds }, isActive: true },
-    select: { id: true, name: true, price: true, salePrice: true, stock: true, isActive: true },
+    select: { 
+      id: true, 
+      name: true, 
+      price: true, 
+      salePrice: true, 
+      stock: true, 
+      isActive: true,
+      variants: {
+        select: {
+          id: true,
+          price: true,
+          salePrice: true,
+          stock: true,
+          isActive: true
+        }
+      }
+    },
   });
 
   if (products.length !== uniqueItems.length) {
@@ -66,19 +84,45 @@ export async function POST(request: NextRequest) {
   // Verify stock
   for (const item of uniqueItems) {
     const product = products.find((p) => p.id === item.productId)!;
-    if (product.stock < item.quantity) {
-      return NextResponse.json(
-        { message: `Insufficient stock for "${product.name ?? "Unnamed Product"}" (available: ${product.stock})` },
-        { status: 400 }
-      );
+    if (item.variantId) {
+      const variant = product.variants.find(v => v.id === item.variantId);
+      if (!variant || !variant.isActive) {
+        return NextResponse.json({ message: `Variant for "${product.name}" is unavailable` }, { status: 400 });
+      }
+      if (variant.stock < item.quantity) {
+        return NextResponse.json(
+          { message: `Insufficient stock for "${product.name}" (available: ${variant.stock})` },
+          { status: 400 }
+        );
+      }
+    } else {
+      if (product.stock < item.quantity) {
+        return NextResponse.json(
+          { message: `Insufficient stock for "${product.name ?? "Unnamed Product"}" (available: ${product.stock})` },
+          { status: 400 }
+        );
+      }
     }
   }
 
   // Calculate subtotal — prefer salePrice when set
   const lineItems = uniqueItems.map((item) => {
     const product = products.find((p) => p.id === item.productId)!;
-    const unitPrice = product.salePrice != null ? Number(product.salePrice) : Number(product.price);
-    return { ...item, unitPrice, lineTotal: unitPrice * item.quantity, productName: product.name ?? "Unnamed Product" };
+    let unitPrice = 0;
+    
+    if (item.variantId) {
+      const variant = product.variants.find(v => v.id === item.variantId)!;
+      unitPrice = variant.salePrice != null ? Number(variant.salePrice) : Number(variant.price);
+    } else {
+      unitPrice = product.salePrice != null ? Number(product.salePrice) : Number(product.price);
+    }
+    
+    return { 
+      ...item, 
+      unitPrice, 
+      lineTotal: unitPrice * item.quantity, 
+      productName: product.name ?? "Unnamed Product" 
+    };
   });
 
   const subtotal = lineItems.reduce((sum, li) => sum + li.lineTotal, 0);

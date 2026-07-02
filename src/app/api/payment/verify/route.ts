@@ -12,6 +12,7 @@ function generateOrderNumber(): string {
 
 interface LineItem {
   productId: string;
+  variantId?: string;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
@@ -87,12 +88,18 @@ export async function POST(request: NextRequest) {
 
   // Deduct stock
   await Promise.all(
-    orderSummary.lineItems.map((item) =>
-      prisma.product.update({
+    orderSummary.lineItems.map((item) => {
+      if (item.variantId) {
+        return prisma.productVariant.update({
+          where: { id: item.variantId },
+          data: { stock: { decrement: item.quantity } },
+        });
+      }
+      return prisma.product.update({
         where: { id: item.productId },
         data: { stock: { decrement: item.quantity } },
-      })
-    )
+      });
+    })
   );
 
   // Create order in DB
@@ -114,6 +121,7 @@ export async function POST(request: NextRequest) {
       items: {
         create: orderSummary.lineItems.map((item) => ({
           productId: item.productId,
+          variantId: item.variantId || null,
           quantity: item.quantity,
           price: item.unitPrice,
           total: item.lineTotal,
