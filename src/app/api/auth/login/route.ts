@@ -43,7 +43,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Check password match
+    // 3. Check password match (Google-only accounts have no password)
+    if (!user.password) {
+      return NextResponse.json(
+        { message: "This account uses Google sign-in. Please continue with Google." },
+        { status: 401 }
+      );
+    }
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
       return NextResponse.json(

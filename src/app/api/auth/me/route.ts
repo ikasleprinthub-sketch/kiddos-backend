@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
         id: true,
         name: true,
         email: true,
+        phone: true,
         role: true,
         isVerified: true,
         isActive: true,
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
           id: user.id,
           name: user.name,
           email: user.email,
+          phone: user.phone,
           role: user.role,
         },
       },
@@ -105,7 +107,9 @@ export async function PUT(request: NextRequest) {
       if (!currentPassword) {
         return NextResponse.json({ message: "Current password is required to set a new password" }, { status: 400 });
       }
-      const valid = await bcrypt.compare(currentPassword, user.password);
+      const valid = user.password
+        ? await bcrypt.compare(currentPassword, user.password)
+        : false;
       if (!valid) {
         return NextResponse.json({ message: "Current password is incorrect" }, { status: 400 });
       }

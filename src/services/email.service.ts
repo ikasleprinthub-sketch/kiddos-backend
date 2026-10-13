@@ -23,7 +23,7 @@ export interface OrderConfirmationData {
 export const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: Number(process.env.SMTP_PORT) || 587,
-  secure: false, // true for port 465, false for other ports
+  secure: Number(process.env.SMTP_PORT) === 465, // true for port 465, false for other ports
   auth: {
     user: process.env.SMTP_USER || "",
     pass: process.env.SMTP_PASS || "",
@@ -164,7 +164,7 @@ export const sendEmail = async (
   to: string,
   subject: string,
   html: string
-) => {
+): Promise<boolean> => {
   // If credentials are empty, log immediately to avoid unnecessary connection timeouts
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.log("-----------------------------------------");
@@ -174,17 +174,21 @@ export const sendEmail = async (
     console.log(`HTML Body:`);
     console.log(html);
     console.log("-----------------------------------------");
-    return;
+    return false;
   }
 
   try {
+    const fromName = process.env.SMTP_FROM_NAME || "KiddoFood";
+    const fromAddress = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
     await transporter.sendMail({
-      from: `"${process.env.SMTP_FROM_NAME || "Kiddos Food"}" <${process.env.SMTP_USER}>`,
+      from: `"${fromName}" <${fromAddress}>`,
+      replyTo: fromAddress,
       to,
       subject,
       html,
     });
     console.log(`Email successfully sent to ${to}`);
+    return true;
   } catch (error) {
     console.error("Failed to send email via SMTP, printing OTP to console instead. Error details:", error);
     console.log("-----------------------------------------");
@@ -194,6 +198,128 @@ export const sendEmail = async (
     console.log(`HTML Body:`);
     console.log(html);
     console.log("-----------------------------------------");
+    return false;
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Admin "new order" notification
+// ---------------------------------------------------------------------------
+
+export interface AdminNewOrderData {
+  orderId: string;
+  orderNumber: string;
+  createdAt: Date;
+  status: string;
+  paymentStatus: string;
+  paymentMethod: string | null;
+  razorpayPaymentId?: string;
+  customer: { name: string; email: string; phone?: string | null };
+  items: { name: string; quantity: number; price: number; total: number }[];
+  subtotal: number;
+  discount: number;
+  deliveryFee: number;
+  total: number;
+  notes?: string | null;
+  shippingAddress: OrderConfirmationData["shippingAddress"];
+}
+
+// Customer-supplied text goes into the HTML, so escape it
+const esc = (v: unknown) =>
+  String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+
+export function buildAdminNewOrderHtml(d: AdminNewOrderData): string {
+  const money = (n: number) => `₹${n.toFixed(2)}`;
+  const a = d.shippingAddress;
+  const address = [a.addressLine1, a.addressLine2, a.city, a.state, a.pincode].filter(Boolean).map(esc).join(", ");
+  const rows = d.items
+    .map(
+      (i) => `<tr>
+        <td style="padding:8px 10px;border-bottom:1px solid #eee;">${esc(i.name)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:center;">${i.quantity}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${money(i.price)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #eee;text-align:right;">${money(i.total)}</td>
+      </tr>`
+    )
+    .join("");
+  const line = (label: string, value: string) =>
+    `<tr><td style="padding:4px 12px 4px 0;color:#777;white-space:nowrap;">${label}</td><td style="padding:4px 0;color:#222;">${value}</td></tr>`;
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:24px;background:#f6f6f6;font-family:Arial,sans-serif;">
+  <div style="max-width:620px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;">
+    <div style="background:#1e4620;padding:20px 28px;color:#fff;">
+      <h2 style="margin:0;font-size:20px;">New order received</h2>
+      <p style="margin:6px 0 0;font-size:14px;color:#cfe6cf;">Order ${esc(d.orderNumber)} &middot; ${money(d.total)}</p>
+    </div>
+    <div style="padding:22px 28px;font-size:14px;">
+      <table cellpadding="0" cellspacing="0">
+        ${line("Order ID", esc(d.orderNumber) + ` <span style="color:#aaa;">(${esc(d.orderId)})</span>`)}
+        ${line("Placed at", esc(d.createdAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })) + " IST")}
+        ${line("Order status", esc(d.status))}
+        ${line("Payment", esc(d.paymentMethod ?? "-") + " &middot; " + esc(d.paymentStatus))}
+        ${d.razorpayPaymentId ? line("Payment ID", esc(d.razorpayPaymentId)) : ""}
+      </table>
+
+      <h3 style="margin:22px 0 8px;font-size:15px;">Customer</h3>
+      <table cellpadding="0" cellspacing="0">
+        ${line("Account", `${esc(d.customer.name)} &lt;${esc(d.customer.email)}&gt;${d.customer.phone ? " &middot; " + esc(d.customer.phone) : ""}`)}
+        ${line("Ship to", `<strong>${esc(a.name)}</strong>, ${esc(a.phone)}`)}
+        ${line("Address", address)}
+        ${d.notes ? line("Notes", esc(d.notes)) : ""}
+      </table>
+
+      <h3 style="margin:22px 0 8px;font-size:15px;">Items</h3>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;">
+        <tr style="background:#f9f9f9;color:#777;font-size:12px;">
+          <th style="padding:8px 10px;text-align:left;">Product</th><th style="padding:8px 10px;">Qty</th>
+          <th style="padding:8px 10px;text-align:right;">Price</th><th style="padding:8px 10px;text-align:right;">Total</th>
+        </tr>${rows}
+      </table>
+
+      <table cellpadding="0" cellspacing="0" style="margin:14px 0 0 auto;">
+        ${line("Subtotal", money(d.subtotal))}
+        ${d.discount > 0 ? line("Discount", "-" + money(d.discount)) : ""}
+        ${line("Delivery", d.deliveryFee > 0 ? money(d.deliveryFee) : "Free")}
+        <tr><td style="padding:8px 12px 0 0;font-weight:bold;">Total</td><td style="padding:8px 0 0;font-weight:bold;color:#1e4620;font-size:16px;">${money(d.total)}</td></tr>
+      </table>
+    </div>
+  </div>
+</body></html>`;
+}
+
+// Orders already notified in this server process (guards against double triggers / client retries)
+const notifiedOrders = new Set<string>();
+
+/**
+ * Emails the admin about a new order. Never throws, so it can never break checkout.
+ * Recipient(s): ADMIN_NOTIFICATION_EMAIL (comma separated). Skipped if not configured.
+ */
+export const sendAdminNewOrderEmail = async (
+  data: AdminNewOrderData,
+  dedupeKey: string = data.orderId
+): Promise<void> => {
+  try {
+    const to = (process.env.ADMIN_NOTIFICATION_EMAIL || "")
+      .split(",")
+      .map((e) => e.trim())
+      .filter(Boolean)
+      .join(",");
+    if (!to) {
+      console.warn("[admin order email] ADMIN_NOTIFICATION_EMAIL is not set; skipping notification");
+      return;
+    }
+    if (notifiedOrders.has(dedupeKey)) return;
+    notifiedOrders.add(dedupeKey);
+
+    const sent = await sendEmail(
+      to,
+      `New Order ${data.orderNumber} – ₹${data.total.toFixed(2)} | KiddoFood`,
+      buildAdminNewOrderHtml(data)
+    );
+    if (!sent) console.error(`[admin order email] notification for ${data.orderNumber} was not delivered`);
+  } catch (err) {
+    console.error("[admin order email] failed:", err);
   }
 };
 

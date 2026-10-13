@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kiddos_postgres_local
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kiddos_user
+      POSTGRES_PASSWORD: kiddos_pass
+      POSTGRES_DB: kiddos_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - kiddos_pgdata_local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kiddos_user -d kiddos_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    container_name: kiddos_backend_local
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      BACKEND_URL: http://localhost:5050
+      CORS_ORIGIN: http://localhost:3030
+      DATABASE_URL: postgresql://kiddos_user:kiddos_pass@postgres:5432/kiddos_db?sslmode=disable
+      UPLOAD_DIR: /app/public/uploads
+      PORT: 5050
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "5050:5050"
+    volumes:
+      - .:/app
+      - kiddos_node_modules:/app/node_modules
+      - kiddos_next_cache:/app/.next
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  kiddos_pgdata_local:
+  kiddos_node_modules:
+  kiddos_next_cache:
