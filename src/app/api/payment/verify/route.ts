@@ -3,6 +3,7 @@ import { getUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { razorpay } from "@/lib/razorpay";
 import crypto from "crypto";
+import { getDeliveryFieldConfig, validateShippingAddress, normalizeShippingAddress, type DeliveryFieldConfig } from "@/lib/delivery-fields";
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/services/email.service";
 
 function generateOrderNumber(): string {
@@ -24,9 +25,9 @@ interface ShippingAddress {
   phone: string;
   addressLine1: string;
   addressLine2?: string;
-  city: string;
-  state: string;
-  pincode: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
 }
 
 function orderResponse(
@@ -52,12 +53,40 @@ export async function POST(request: NextRequest) {
     return await verifyPayment(request);
   } catch (error) {
     // Always answer with JSON so the checkout page can show a message instead of failing to parse an empty 500
-    console.error("[payment/verify]", error);
+    console.error("[payment/verify]", (error as { code?: string }).code ?? "", (error as Error).message);
     return NextResponse.json(
-      { message: "Could not record your order. If money was deducted, please contact support.", detail: (error as Error).message },
+      {
+        message: "Could not record your order. If money was deducted, please contact support.",
+        // internal error text only outside production
+        ...(process.env.NODE_ENV !== "production" && { detail: (error as Error).message }),
+      },
       { status: 500 }
     );
   }
+}
+
+const isMoney = (v: unknown) => v !== "" && v != null && Number.isFinite(Number(v)) && Number(v) >= 0;
+
+/** Returns a short reason when the order data is unusable, otherwise null. */
+function validateOrderPayload(
+  s: { subtotal: string; discount: string; deliveryFee: string; total: string; lineItems: LineItem[] } | undefined,
+  addr: ShippingAddress | undefined,
+  paidAmountPaise: number,
+  fieldConfig: DeliveryFieldConfig
+): string | null {
+  if (!s || !Array.isArray(s.lineItems) || s.lineItems.length === 0) return "no items";
+  if (![s.subtotal, s.discount, s.deliveryFee, s.total].every(isMoney)) return "invalid amounts";
+  for (const i of s.lineItems) {
+    if (!i || typeof i.productId !== "string" || !i.productId) return "invalid item";
+    if (!Number.isInteger(i.quantity) || i.quantity < 1 || i.quantity > 1000) return "invalid quantity";
+    if (!isMoney(i.unitPrice) || !isMoney(i.lineTotal)) return "invalid item price";
+  }
+  const total = Number(s.total);
+  if (Math.round(total * 100) !== paidAmountPaise) return "total does not match the amount paid";
+  if (Math.abs(Number(s.subtotal) - Number(s.discount) + Number(s.deliveryFee) - total) > 0.011) return "amounts do not add up";
+  const addressError = validateShippingAddress(addr, fieldConfig);
+  if (addressError) return addressError;
+  return null;
 }
 
 async function verifyPayment(request: NextRequest) {
@@ -66,7 +95,10 @@ async function verifyPayment(request: NextRequest) {
     return NextResponse.json({ message: "Authentication required" }, { status: 401 });
   }
 
-  const body = await request.json();
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ message: "Invalid request body" }, { status: 400 });
+  }
   const {
     razorpayOrderId,
     razorpayPaymentId,
@@ -107,15 +139,30 @@ async function verifyPayment(request: NextRequest) {
 
   // Ownership: the Razorpay order must have been created for this authenticated user
   // (create-order stores userId in its notes), so one user cannot claim another user's payment.
+  let paidAmountPaise: number;
   try {
     const rpOrder = await razorpay.orders.fetch(razorpayOrderId);
     if (rpOrder.notes?.userId !== user.id) {
       return NextResponse.json({ message: "This payment does not belong to your account" }, { status: 403 });
     }
+    paidAmountPaise = Number(rpOrder.amount);
   } catch (err) {
-    console.error("[payment/verify] could not fetch Razorpay order", err);
+    console.error(`[payment/verify] could not fetch Razorpay order ${razorpayOrderId}:`, (err as Error).message);
     return NextResponse.json({ message: "Unable to verify payment order" }, { status: 400 });
   }
+
+  // Validate the order payload before writing anything. The signature only proves the payment,
+  // not that the cart data sent with it is sane, so pin the order to what Razorpay actually charged.
+  const invalid = validateOrderPayload(orderSummary, shippingAddress, paidAmountPaise, await getDeliveryFieldConfig());
+  if (invalid) {
+    console.error(`[payment/verify] rejected payload for payment ${razorpayPaymentId}: ${invalid}`);
+    return NextResponse.json(
+      { message: `Order data is invalid (${invalid}). If money was deducted, contact support with payment ID ${razorpayPaymentId}.` },
+      { status: 400 }
+    );
+  }
+
+  const address = normalizeShippingAddress(shippingAddress);
 
   // Idempotency: this payment may already have produced an order (client retry / double submit)
   const alreadyCreated = await prisma.order.findUnique({ where: { razorpayPaymentId } });
@@ -155,7 +202,8 @@ async function verifyPayment(request: NextRequest) {
           total: Number(orderSummary.total),
           couponId,
           notes: notes || null,
-          shippingAddress: shippingAddress as object,
+          // keep only the known address fields (optional ones may be empty)
+          shippingAddress: address,
           items: {
             create: orderSummary.lineItems.map((item) => ({
               productId: item.productId,
@@ -187,7 +235,8 @@ async function verifyPayment(request: NextRequest) {
       }
 
       return created;
-    });
+      // order + items + coupon + stock commit together or not at all; default 5s is too tight for big carts
+    }, { maxWait: 10000, timeout: 30000 });
   } catch (err) {
     // Lost a race with a parallel request for the same payment: return that order instead
     if ((err as { code?: string }).code === "P2002") {
@@ -204,7 +253,7 @@ async function verifyPayment(request: NextRequest) {
   });
   if (dbUser?.email) {
     sendOrderConfirmationEmail(dbUser.email, {
-      customerName: dbUser.name ?? shippingAddress.name,
+      customerName: dbUser.name ?? address.name,
       orderNumber: order.orderNumber,
       razorpayPaymentId,
       items: order.items.map((item) => ({
@@ -217,7 +266,7 @@ async function verifyPayment(request: NextRequest) {
       discount: Number(orderSummary.discount),
       deliveryFee: Number(orderSummary.deliveryFee),
       total: Number(orderSummary.total),
-      shippingAddress,
+      shippingAddress: address,
     }).catch((err) => console.error("Order confirmation email failed:", err));
   }
 
@@ -232,7 +281,7 @@ async function verifyPayment(request: NextRequest) {
       paymentMethod: order.paymentMethod,
       razorpayPaymentId,
       customer: {
-        name: dbUser?.name ?? shippingAddress.name,
+        name: dbUser?.name ?? (address.name || "Customer"),
         email: dbUser?.email ?? "-",
         phone: dbUser?.phone,
       },
@@ -247,7 +296,7 @@ async function verifyPayment(request: NextRequest) {
       deliveryFee: Number(order.deliveryFee),
       total: Number(order.total),
       notes: order.notes,
-      shippingAddress,
+      shippingAddress: address,
     },
     razorpayPaymentId // one notification per payment, even if the client retries verification
   );

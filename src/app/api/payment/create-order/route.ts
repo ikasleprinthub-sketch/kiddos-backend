@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { razorpay } from "@/lib/razorpay";
+import { getDeliveryFieldConfig, validateShippingAddress } from "@/lib/delivery-fields";
 
 interface CartItem {
   productId: string;
@@ -14,9 +15,9 @@ interface ShippingAddress {
   phone: string;
   addressLine1: string;
   addressLine2?: string;
-  city: string;
-  state: string;
-  pincode: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -38,8 +39,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Cart is empty" }, { status: 400 });
   }
 
-  if (!shippingAddress?.name || !shippingAddress?.phone || !shippingAddress?.addressLine1 || !shippingAddress?.pincode) {
-    return NextResponse.json({ message: "Complete shipping address is required" }, { status: 400 });
+  const addressError = validateShippingAddress(shippingAddress, await getDeliveryFieldConfig());
+  if (addressError) {
+    return NextResponse.json({ message: addressError }, { status: 400 });
   }
 
   // Consolidate duplicate items in the cart
@@ -158,8 +160,17 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Delivery fee (free above ₹500)
-  const deliveryFee = subtotal - discount >= 500 ? 0 : 50;
+  // Delivery fee: Admin > Settings > Shipping (defaults: free above ₹500, else ₹50)
+  const shippingSettings = await prisma.setting.findMany({
+    where: { key: { in: ["free_shipping_threshold", "default_delivery_fee"] } },
+  });
+  const settingNum = (key: string, fallback: number) => {
+    const raw = shippingSettings.find((x) => x.key === key)?.value;
+    const n = raw === undefined || raw.trim() === "" ? NaN : Number(raw);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  };
+  const freeShippingAbove = settingNum("free_shipping_threshold", 500);
+  const deliveryFee = subtotal - discount >= freeShippingAbove ? 0 : settingNum("default_delivery_fee", 50);
 
   const total = Math.max(0, subtotal - discount + deliveryFee);
 
@@ -191,9 +202,9 @@ const razorpayOrder = await razorpay.orders.create({
     notes,
   });
   } catch (error) {
-    console.error("[payment/create-order]", error);
+    console.error("[payment/create-order]", (error as Error).message);
     return NextResponse.json(
-      { message: "Internal server error", detail: (error as Error).message },
+      { message: "Internal server error", ...(process.env.NODE_ENV !== "production" && { detail: (error as Error).message }) },
       { status: 500 }
     );
   }

@@ -20,6 +20,10 @@ export interface OrderConfirmationData {
   };
 }
 
+// Customer-supplied text goes into the HTML, so escape it
+const esc = (v: unknown) =>
+  String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+
 export const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: Number(process.env.SMTP_PORT) || 587,
@@ -35,7 +39,7 @@ export function buildOrderConfirmationHtml(data: OrderConfirmationData): string 
     .map(
       (item) => `
         <tr>
-          <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;">${item.name}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;">${esc(item.name)}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;text-align:center;">${item.quantity}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;text-align:right;">₹${item.price.toFixed(2)}</td>
           <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;text-align:right;">₹${item.total.toFixed(2)}</td>
@@ -46,6 +50,7 @@ export function buildOrderConfirmationHtml(data: OrderConfirmationData): string 
   const addr = data.shippingAddress;
   const addressLine = [addr.addressLine1, addr.addressLine2, addr.city, addr.state, addr.pincode]
     .filter(Boolean)
+    .map(esc)
     .join(", ");
 
   const discountRow =
@@ -64,7 +69,7 @@ export function buildOrderConfirmationHtml(data: OrderConfirmationData): string 
         <!-- Header -->
         <tr>
           <td style="background:#f97316;padding:28px 32px;text-align:center;">
-            <h1 style="margin:0;color:#fff;font-size:26px;letter-spacing:1px;">KiddoFood</h1>
+            <h1 style="margin:0;color:#fff;font-size:26px;letter-spacing:1px;">Kiddos Foods</h1>
             <p style="margin:8px 0 0;color:#ffe4cc;font-size:14px;">Order Confirmation</p>
           </td>
         </tr>
@@ -72,7 +77,7 @@ export function buildOrderConfirmationHtml(data: OrderConfirmationData): string 
         <!-- Greeting -->
         <tr>
           <td style="padding:28px 32px 16px;">
-            <h2 style="margin:0 0 8px;color:#222;font-size:20px;">Thank you, ${data.customerName}!</h2>
+            <h2 style="margin:0 0 8px;color:#222;font-size:20px;">Thank you, ${esc(data.customerName)}!</h2>
             <p style="margin:0;color:#555;font-size:15px;">Your payment was successful and your order has been confirmed.</p>
           </td>
         </tr>
@@ -86,8 +91,8 @@ export function buildOrderConfirmationHtml(data: OrderConfirmationData): string 
                 <td style="font-size:13px;color:#888;text-align:right;">Payment ID</td>
               </tr>
               <tr>
-                <td style="font-size:16px;font-weight:bold;color:#f97316;">${data.orderNumber}</td>
-                <td style="font-size:13px;color:#555;text-align:right;">${data.razorpayPaymentId}</td>
+                <td style="font-size:16px;font-weight:bold;color:#f97316;">${esc(data.orderNumber)}</td>
+                <td style="font-size:13px;color:#555;text-align:right;">${esc(data.razorpayPaymentId)}</td>
               </tr>
             </table>
           </td>
@@ -131,9 +136,9 @@ export function buildOrderConfirmationHtml(data: OrderConfirmationData): string 
           <td style="padding:0 32px 28px;">
             <h3 style="margin:0 0 8px;color:#222;font-size:15px;">Delivering To</h3>
             <p style="margin:0;color:#555;font-size:14px;line-height:1.6;">
-              <strong>${addr.name}</strong><br>
+              <strong>${esc(addr.name)}</strong><br>
               ${addressLine}<br>
-              ${addr.phone}
+              ${esc(addr.phone)}
             </p>
           </td>
         </tr>
@@ -141,7 +146,7 @@ export function buildOrderConfirmationHtml(data: OrderConfirmationData): string 
         <!-- Footer -->
         <tr>
           <td style="background:#f9f9f9;padding:20px 32px;text-align:center;border-top:1px solid #f0f0f0;">
-            <p style="margin:0;color:#aaa;font-size:12px;">If you have any questions, reply to this email or contact us.<br>&copy; 2026 KiddoFood. All rights reserved.</p>
+            <p style="margin:0;color:#aaa;font-size:12px;">If you have any questions, reply to this email or contact us.<br>&copy; ${new Date().getFullYear()} Kiddos Foods. All rights reserved.</p>
           </td>
         </tr>
 
@@ -157,13 +162,14 @@ export const sendOrderConfirmationEmail = async (
   data: OrderConfirmationData
 ): Promise<void> => {
   const html = buildOrderConfirmationHtml(data);
-  await sendEmail(to, `Order Confirmed – ${data.orderNumber} | KiddoFood`, html);
+  await sendEmail(to, `Order Confirmed – ${data.orderNumber} | Kiddos Foods`, html);
 };
 
 export const sendEmail = async (
   to: string,
   subject: string,
-  html: string
+  html: string,
+  options: { replyTo?: string } = {}
 ): Promise<boolean> => {
   // If credentials are empty, log immediately to avoid unnecessary connection timeouts
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
@@ -178,11 +184,11 @@ export const sendEmail = async (
   }
 
   try {
-    const fromName = process.env.SMTP_FROM_NAME || "KiddoFood";
+    const fromName = process.env.SMTP_FROM_NAME || "Kiddos Foods";
     const fromAddress = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
     await transporter.sendMail({
       from: `"${fromName}" <${fromAddress}>`,
-      replyTo: fromAddress,
+      replyTo: options.replyTo || fromAddress,
       to,
       subject,
       html,
@@ -190,7 +196,11 @@ export const sendEmail = async (
     console.log(`Email successfully sent to ${to}`);
     return true;
   } catch (error) {
-    console.error("Failed to send email via SMTP, printing OTP to console instead. Error details:", error);
+    // Log only the reason, never the full error object (it can carry connection/auth details)
+    const err = error as { code?: string; responseCode?: number; message?: string };
+    console.error(
+      `Failed to send email via SMTP (code=${err.code ?? "-"}, response=${err.responseCode ?? "-"}): ${err.message ?? "unknown error"}`
+    );
     console.log("-----------------------------------------");
     console.log(`[Email Service (FALLBACK LOG)]`);
     console.log(`To: ${to}`);
@@ -223,10 +233,6 @@ export interface AdminNewOrderData {
   notes?: string | null;
   shippingAddress: OrderConfirmationData["shippingAddress"];
 }
-
-// Customer-supplied text goes into the HTML, so escape it
-const esc = (v: unknown) =>
-  String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
 export function buildAdminNewOrderHtml(d: AdminNewOrderData): string {
   const money = (n: number) => `₹${n.toFixed(2)}`;
@@ -300,11 +306,7 @@ export const sendAdminNewOrderEmail = async (
   dedupeKey: string = data.orderId
 ): Promise<void> => {
   try {
-    const to = (process.env.ADMIN_NOTIFICATION_EMAIL || "")
-      .split(",")
-      .map((e) => e.trim())
-      .filter(Boolean)
-      .join(",");
+    const to = getAdminRecipients();
     if (!to) {
       console.warn("[admin order email] ADMIN_NOTIFICATION_EMAIL is not set; skipping notification");
       return;
@@ -314,7 +316,7 @@ export const sendAdminNewOrderEmail = async (
 
     const sent = await sendEmail(
       to,
-      `New Order ${data.orderNumber} – ₹${data.total.toFixed(2)} | KiddoFood`,
+      `New Order ${data.orderNumber} – ₹${data.total.toFixed(2)} | Kiddos Foods`,
       buildAdminNewOrderHtml(data)
     );
     if (!sent) console.error(`[admin order email] notification for ${data.orderNumber} was not delivered`);
@@ -323,3 +325,99 @@ export const sendAdminNewOrderEmail = async (
   }
 };
 
+
+// ---------------------------------------------------------------------------
+// Admin notification for website form submissions (contact, franchise, ...)
+// ---------------------------------------------------------------------------
+
+export const getAdminRecipients = (): string =>
+  (process.env.ADMIN_NOTIFICATION_EMAIL || "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean)
+    .join(",");
+
+/** Strips line breaks and control characters so user text can never inject mail headers. */
+export const cleanHeaderText = (v: unknown, max = 160): string =>
+  String(v ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, max);
+
+export const isValidEmail = (v: unknown): v is string =>
+  typeof v === "string" && v.length <= 254 && /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(v);
+
+export interface AdminFormField {
+  label: string;
+  value: string | null | undefined;
+}
+
+export interface AdminFormSubmission {
+  /** Human readable form name, e.g. "Contact Form" */
+  formName: string;
+  /** Id of the saved submission (also used to prevent duplicate emails) */
+  submissionId: string;
+  fields: AdminFormField[];
+  submittedAt?: Date;
+  /** Submitter's email, set as Reply-To so the admin can answer directly */
+  replyTo?: string;
+}
+
+export function buildAdminFormHtml(d: AdminFormSubmission): string {
+  const when = (d.submittedAt ?? new Date()).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+  const rows = d.fields
+    .map(
+      (f) => `<tr>
+        <td style="padding:10px 12px;border-bottom:1px solid #eee;color:#777;font-size:13px;width:35%;vertical-align:top;">${esc(f.label)}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #eee;color:#222;font-size:14px;vertical-align:top;word-break:break-word;white-space:pre-wrap;">${
+          f.value ? esc(f.value) : '<span style="color:#aaa;">&mdash;</span>'
+        }</td>
+      </tr>`
+    )
+    .join("");
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:16px;background:#f6f6f6;font-family:Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border-radius:8px;overflow:hidden;">
+      <tr><td style="background:#1e4620;padding:22px 24px;color:#fff;">
+        <div style="font-size:13px;letter-spacing:1px;color:#cfe6cf;">KIDDOS FOODS</div>
+        <h2 style="margin:6px 0 0;font-size:20px;">New ${esc(d.formName)} submission</h2>
+        <p style="margin:6px 0 0;font-size:13px;color:#cfe6cf;">Received ${esc(when)} IST</p>
+      </td></tr>
+      <tr><td style="padding:8px 12px 4px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+      </td></tr>
+      <tr><td style="padding:14px 24px 20px;font-size:12px;color:#999;">
+        Reference: ${esc(d.submissionId)}<br>This is an automated notification from the Kiddos Foods website.
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body></html>`;
+}
+
+// Submissions already notified in this server process (guards against double triggers)
+const notifiedSubmissions = new Set<string>();
+
+/**
+ * Emails the admin the full details of a form submission. Never throws, so a mail problem
+ * can never fail (or duplicate) the submission itself. Call it only after the submission is saved.
+ */
+export const sendAdminFormEmail = async (d: AdminFormSubmission): Promise<void> => {
+  try {
+    const to = getAdminRecipients();
+    if (!to) {
+      console.warn(`[admin form email] ADMIN_NOTIFICATION_EMAIL is not set; skipping ${d.formName} notification`);
+      return;
+    }
+    const key = `${d.formName}:${d.submissionId}`;
+    if (notifiedSubmissions.has(key)) return;
+    notifiedSubmissions.add(key);
+
+    const who = d.fields.find((f) => /^name$/i.test(f.label))?.value;
+    const subject = cleanHeaderText(`New ${d.formName} Submission${who ? ` – ${who}` : ""} | Kiddos Foods`);
+    const sent = await sendEmail(to, subject, buildAdminFormHtml(d), {
+      replyTo: isValidEmail(d.replyTo) ? d.replyTo : undefined,
+    });
+    if (!sent) console.error(`[admin form email] ${d.formName} ${d.submissionId} was not delivered`);
+  } catch (err) {
+    console.error(`[admin form email] ${d.formName} failed:`, (err as Error).message);
+  }
+};

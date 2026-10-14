@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendAdminFormEmail } from "@/services/email.service";
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Create Franchise Download lead
-    await prisma.$transaction([
+    const [lead] = await prisma.$transaction([
       prisma.franchiseDownload.create({
         data: {
           name: tempData.name,
@@ -61,6 +62,21 @@ export async function POST(request: NextRequest) {
       }),
       prisma.oTP.delete({ where: { id: otpRecord.id } }),
     ]);
+
+    // The OTP row is deleted in the transaction, so a lead can only be notified once
+    void sendAdminFormEmail({
+      formName: "Franchise Download Request",
+      submissionId: lead.id,
+      submittedAt: lead.createdAt,
+      replyTo: lead.email,
+      fields: [
+        { label: "Name", value: lead.name },
+        { label: "Email", value: lead.email },
+        { label: "Mobile", value: lead.mobile },
+        { label: "Resource", value: lead.resource === "BROCHURE" ? "Franchise Brochure" : "Franchise Application Form" },
+        { label: "Email Verified", value: "Yes (OTP)" },
+      ],
+    });
 
     // 5. Determine direct download link based on resource
     const downloadUrl =
