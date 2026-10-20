@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parseProductImages, productImageRows, PRODUCT_IMAGE_ORDER } from "@/lib/product-images";
 
 function slugify(text: string): string {
   return text
@@ -25,15 +26,26 @@ export async function GET(request: NextRequest) {
   const isActive = searchParams.get("isActive");
   const skip = (page - 1) * limit;
 
-  const where: Record<string, unknown> = {};
+  // Search/category filters, without the status filter — used for the tab and summary counts
+  const baseWhere: Record<string, unknown> = {};
   if (search) {
-    where.OR = [
+    baseWhere.OR = [
       { name: { contains: search, mode: "insensitive" } },
       { sku: { contains: search, mode: "insensitive" } },
     ];
   }
-  if (categoryId) where.categoryId = categoryId;
+  if (categoryId) baseWhere.categoryId = categoryId;
+  const where: Record<string, unknown> = { ...baseWhere };
   if (isActive !== null && isActive !== "") where.isActive = isActive === "true";
+
+  // Low stock uses the same threshold as the admin list's row badge (1–10 units)
+  const [all, active, lowStock, outOfStock] = await Promise.all([
+    prisma.product.count({ where: baseWhere }),
+    prisma.product.count({ where: { ...baseWhere, isActive: true } }),
+    prisma.product.count({ where: { ...baseWhere, stock: { gt: 0, lte: 10 } } }),
+    prisma.product.count({ where: { ...baseWhere, stock: { lte: 0 } } }),
+  ]);
+  const counts = { all, active, inactive: all - active, lowStock, outOfStock };
 
   const [products, total] = await Promise.all([
     prisma.product.findMany({
@@ -49,7 +61,7 @@ export async function GET(request: NextRequest) {
     prisma.product.count({ where }),
   ]);
 
-  return NextResponse.json({ products, total, page, limit, pages: Math.ceil(total / limit) });
+  return NextResponse.json({ products, total, page, limit, pages: Math.ceil(total / limit), counts });
 }
 
 export async function POST(request: NextRequest) {
@@ -72,6 +84,8 @@ export async function POST(request: NextRequest) {
     if (!name?.trim()) return NextResponse.json({ message: "Product name is required" }, { status: 400 });
     if (!price || isNaN(Number(price))) return NextResponse.json({ message: "Valid price is required" }, { status: 400 });
     if (!categoryId) return NextResponse.json({ message: "Category is required" }, { status: 400 });
+    const parsedImages = parseProductImages(images);
+    if ("error" in parsedImages) return NextResponse.json({ message: parsedImages.error }, { status: 400 });
 
     const slug = slugify(name);
     const existingSlug = await prisma.product.findUnique({ where: { slug } });
@@ -111,7 +125,7 @@ export async function POST(request: NextRequest) {
         shelfLife: shelfLife || null,
         storageInstructions: storageInstructions || null,
         images: {
-          create: images.map((url: string, i: number) => ({ url, isPrimary: i === 0 })),
+          create: productImageRows(parsedImages.urls),
         },
         variants: variants.length > 0 ? {
           create: variants
@@ -129,7 +143,7 @@ export async function POST(request: NextRequest) {
       },
       include: {
         category: { select: { id: true, name: true } },
-        images: true,
+        images: { orderBy: PRODUCT_IMAGE_ORDER },
         variants: true,
       },
     });

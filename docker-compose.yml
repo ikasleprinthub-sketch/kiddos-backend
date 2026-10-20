@@ -28,13 +28,16 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql://kiddos_user:kiddos_pass@postgres:5432/kiddos_db?sslmode=disable
-      UPLOAD_DIR: /app/public/uploads
+      UPLOAD_DIR: /app/uploads
       PORT: 8000
     ports:
       - '8000:8000'
     volumes:
-      # Mounts the local public/uploads directory to the container so pictures are persistent and visible locally
-      - ./public/uploads:/app/public/uploads
+      # Uploaded images persist on the host, outside the container, so they survive rebuilds/recreation.
+      # The host folder defaults to ./public/uploads (where this setup has always stored them); set
+      # UPLOAD_HOST_DIR in .env to use another one, e.g. /var/www/kiddosfoods/uploads in production
+      # or ./uploads to share files with the non-Docker dev server. URLs stay /uploads/<folder>/<file> either way.
+      - ${UPLOAD_HOST_DIR:-./public/uploads}:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy

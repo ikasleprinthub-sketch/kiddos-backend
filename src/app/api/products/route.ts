@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { PRODUCT_IMAGE_ORDER } from "@/lib/product-images";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
       orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
       include: {
         category: { select: { id: true, name: true, slug: true } },
-        images: { select: { url: true, isPrimary: true }, orderBy: { isPrimary: "desc" } },
+        images: { select: { url: true, isPrimary: true }, orderBy: PRODUCT_IMAGE_ORDER },
         variants: true,
       },
     }),

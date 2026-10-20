@@ -30,7 +30,8 @@ services:
       BACKEND_URL: http://localhost:5050
       CORS_ORIGIN: http://localhost:3030
       DATABASE_URL: postgresql://kiddos_user:kiddos_pass@postgres:5432/kiddos_db?sslmode=disable
-      UPLOAD_DIR: /app/public/uploads
+      # Same folder as the non-Docker dev server (./uploads, via the project bind mount below)
+      UPLOAD_DIR: /app/uploads
       PORT: 5050
       WATCHPACK_POLLING: "true"
     ports:

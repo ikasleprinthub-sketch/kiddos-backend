@@ -242,6 +242,7 @@ model FranchiseInquiry {
   readyToStart      String?
   message           String?
   image             String?
+  status            FranchiseInquiryStatus @default(NEW)
   createdAt         DateTime @default(now())
 
   @@map("franchise_inquiries")
@@ -256,6 +257,16 @@ model FranchiseDownload {
   createdAt DateTime @default(now())
 
   @@map("franchise_downloads")
+}
+
+// Fixed-window request counters shared by every app instance (see src/lib/rate-limit.ts)
+model RateLimitBucket {
+  key         String   @id
+  count       Int
+  windowStart DateTime
+
+  @@index([windowStart])
+  @@map("rate_limit_buckets")
 }
 
 enum OTPType {
@@ -303,4 +314,11 @@ enum ContactInquiryStatus {
   OPEN
   RESOLVED
   CLOSED
+}
+
+// Lead pipeline for franchise inquiries (admin Franchise Leads page)
+enum FranchiseInquiryStatus {
+  NEW
+  PENDING
+  CONTACTED
 }

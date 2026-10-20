@@ -33,6 +33,12 @@ COPY --from=builder /app/next.config.ts ./
 # Copy generated Prisma client (v7 generates to src/generated/prisma)
 COPY --from=builder /app/src/generated ./src/generated
 
+# Uploaded images live here; mount a persistent volume on it (see docker-compose.yml).
+# Created in the image so the app can write even before a volume is attached.
+ENV UPLOAD_DIR=/app/uploads
+RUN mkdir -p /app/uploads
+
 EXPOSE 8000
 
-CMD ["npm", "run", "start"]
+# `npm start` pins port 5050 (for local dev); in the container listen on $PORT (default 8000)
+CMD ["sh", "-c", "exec node_modules/.bin/next start -p ${PORT:-8000}"]

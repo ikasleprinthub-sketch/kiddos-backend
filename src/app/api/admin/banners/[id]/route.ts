@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parseBannerInput } from "@/lib/banners";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const admin = authorizeAdmin(request);
@@ -18,24 +19,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
 
   const { id } = await params;
-  const body = await request.json();
-  const { title, subtitle, image, link, isActive, sortOrder, position } = body;
+  const body = await request.json().catch(() => null);
+  const parsed = parseBannerInput(body, true);
+  if ("error" in parsed) return NextResponse.json({ message: parsed.error }, { status: 400 });
 
   const existing = await prisma.banner.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ message: "Banner not found" }, { status: 404 });
 
-  const updateData: Record<string, unknown> = {};
-  if (title !== undefined) updateData.title = title.trim();
-  if (subtitle !== undefined) updateData.subtitle = subtitle;
-  if (image !== undefined) updateData.image = image;
-  if (link !== undefined) updateData.link = link;
-  if (isActive !== undefined) updateData.isActive = isActive;
-  if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
-  if (position !== undefined) updateData.position = position;
-
-  const banner = await prisma.banner.update({ where: { id }, data: updateData });
-
-  return NextResponse.json({ banner });
+  try {
+    const banner = await prisma.banner.update({ where: { id }, data: parsed.data });
+    return NextResponse.json({ banner });
+  } catch (error) {
+    console.error("Banner update error:", error);
+    return NextResponse.json({ message: "Failed to save banner" }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   }
   if (isActive !== null && isActive !== "") where.isActive = isActive === "true";
 
-  const [customers, total] = await Promise.all([
+  const [users, total] = await Promise.all([
     prisma.user.findMany({
       where,
       skip,
@@ -32,10 +32,18 @@ export async function GET(request: NextRequest) {
         id: true, name: true, email: true, phone: true,
         isVerified: true, isActive: true, createdAt: true,
         _count: { select: { orders: true } },
+        // Sign-up doesn't ask for a phone, so fall back to the one given at the latest checkout
+        orders: { take: 1, orderBy: { createdAt: "desc" }, select: { shippingAddress: true } },
       },
     }),
     prisma.user.count({ where }),
   ]);
+
+  const customers = users.map(({ orders, ...user }) => {
+    const address = orders[0]?.shippingAddress as { phone?: unknown } | null | undefined;
+    const orderPhone = typeof address?.phone === "string" && address.phone.trim() ? address.phone.trim() : null;
+    return { ...user, orderPhone };
+  });
 
   return NextResponse.json({ customers, total, page, limit, pages: Math.ceil(total / limit) });
 }

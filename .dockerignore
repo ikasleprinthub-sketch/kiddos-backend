@@ -1,0 +1,13 @@
+# Keep secrets, local state and uploaded files out of image layers.
+# Env vars come from compose (env_file / environment); uploads come from a mounted volume.
+.env
+.env.*
+!.env.example
+node_modules
+.next
+.git
+uploads
+public/uploads/*
+!public/uploads/.gitkeep
+src/generated
+*.log

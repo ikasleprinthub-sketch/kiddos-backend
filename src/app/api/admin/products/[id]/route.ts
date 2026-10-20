@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parseProductImages, productImageRows, PRODUCT_IMAGE_ORDER } from "@/lib/product-images";
 
 function slugify(text: string): string {
   return text
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     where: { id },
     include: {
       category: true,
-      images: { orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }] },
+      images: { orderBy: PRODUCT_IMAGE_ORDER },
       variants: { orderBy: { createdAt: "asc" } },
     },
   });
@@ -84,38 +85,84 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (shelfLife !== undefined) updateData.shelfLife = shelfLife || null;
   if (storageInstructions !== undefined) updateData.storageInstructions = storageInstructions || null;
 
-  if (images !== undefined) {
-    await prisma.productImage.deleteMany({ where: { productId: id } });
-    updateData.images = {
-      create: images.map((url: string, i: number) => ({ url, isPrimary: i === 0 })),
-    };
-  }
+    // Validate everything before touching the database, so a bad request changes nothing
+    let imageUrls: string[] | undefined;
+    if (images !== undefined) {
+      const parsed = parseProductImages(images);
+      if ("error" in parsed) return NextResponse.json({ message: parsed.error }, { status: 400 });
+      imageUrls = parsed.urls;
+    }
 
-  if (variants !== undefined && Array.isArray(variants) && variants.length > 0) {
-    await prisma.productVariant.deleteMany({ where: { productId: id } });
-    updateData.variants = {
-      create: variants
-        .filter((v: any) => v && v.price !== undefined && v.price !== null)
+    let variantRows: { id?: string; data: Record<string, unknown> }[] | undefined;
+    if (variants !== undefined && Array.isArray(variants) && variants.length > 0) {
+      variantRows = variants
+        .filter((v: any) => v && v.price !== undefined && v.price !== null && v.price !== "")
         .map((v: any) => ({
-          weight: v.weight ? Number(v.weight) : null,
-          unit: v.unit || null,
-          price: Number(v.price),
-          salePrice: v.salePrice ? Number(v.salePrice) : null,
-          stock: Number(v.stock) || 0,
-          sku: v.sku || null,
-          isActive: v.isActive ?? true,
-        })),
-    };
-  }
+          id: typeof v.id === "string" ? v.id : undefined,
+          data: {
+            weight: v.weight ? Number(v.weight) : null,
+            unit: v.unit || null,
+            price: Number(v.price),
+            salePrice: v.salePrice ? Number(v.salePrice) : null,
+            stock: Number(v.stock) || 0,
+            sku: v.sku || null,
+            isActive: v.isActive ?? true,
+          },
+        }));
+      if (variantRows!.some((v) => isNaN(v.data.price as number))) {
+        return NextResponse.json({ message: "Every variant needs a valid price" }, { status: 400 });
+      }
+    }
 
-    const product = await prisma.product.update({
-      where: { id },
-      data: updateData,
-      include: {
-        category: true,
-        images: true,
-        variants: true,
-      },
+    // Images, variants and product fields are saved together: if any step fails, none of it is applied
+    const product = await prisma.$transaction(async (tx) => {
+      if (imageUrls !== undefined) {
+        const current = await tx.productImage.findMany({ where: { productId: id }, orderBy: PRODUCT_IMAGE_ORDER });
+        const unchanged = current.length === imageUrls.length && current.every((img, i) => img.url === imageUrls![i]);
+        if (!unchanged) {
+          await tx.productImage.deleteMany({ where: { productId: id } });
+          await tx.productImage.createMany({
+            data: productImageRows(imageUrls).map((row) => ({ ...row, productId: id })),
+          });
+        }
+      }
+
+      if (variantRows !== undefined) {
+        // Update variants in place (keeps their ids stable for carts and past orders)
+        const current = await tx.productVariant.findMany({
+          where: { productId: id },
+          select: { id: true, _count: { select: { orderItems: true } } },
+        });
+        const currentIds = new Set(current.map((v) => v.id));
+        const keptIds = new Set<string>();
+        for (const v of variantRows) {
+          if (v.id && currentIds.has(v.id)) {
+            keptIds.add(v.id);
+            await tx.productVariant.update({ where: { id: v.id }, data: v.data });
+          } else {
+            await tx.productVariant.create({ data: { ...v.data, productId: id } as any });
+          }
+        }
+        for (const v of current) {
+          if (keptIds.has(v.id)) continue;
+          // Variants that appear in orders can't be deleted; hide them instead
+          if (v._count.orderItems > 0) {
+            await tx.productVariant.update({ where: { id: v.id }, data: { isActive: false } });
+          } else {
+            await tx.productVariant.delete({ where: { id: v.id } });
+          }
+        }
+      }
+
+      return tx.product.update({
+        where: { id },
+        data: updateData,
+        include: {
+          category: true,
+          images: { orderBy: PRODUCT_IMAGE_ORDER },
+          variants: { orderBy: { createdAt: "asc" } },
+        },
+      });
     });
 
     return NextResponse.json({ product });
@@ -128,8 +175,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         { status: 409 }
       );
     }
+    if (error.code === "P2003") {
+      return NextResponse.json({ message: "Invalid category or related record — nothing was changed" }, { status: 400 });
+    }
     return NextResponse.json(
-      { message: "Failed to update product" },
+      { message: "Failed to update product — nothing was changed" },
       { status: 500 }
     );
   }

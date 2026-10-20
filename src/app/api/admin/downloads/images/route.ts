@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import JSZip from "jszip";
+import { getUploadRoot } from "@/lib/uploads";
 
 /**
  * GET /api/admin/downloads/images
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     // Create a new JSZip instance to build the ZIP archive
     const zip = new JSZip();
     // Get the upload directory path from environment variable or use default "uploads" folder
-    const uploadDir = process.env.UPLOAD_DIR || join(process.cwd(), "uploads");
+    const uploadDir = getUploadRoot();
 
     // Query database for all product images with their associated product names
     const productImages = await prisma.productImage.findMany({

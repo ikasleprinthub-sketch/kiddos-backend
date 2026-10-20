@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parseOptionalImage } from "@/lib/uploads";
 
 function slugify(text: string): string {
   return text
@@ -39,6 +40,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   const body = await request.json();
   const { name, description, image, isActive, sortOrder } = body;
+  const parsedImage = parseOptionalImage(image);
+  if ("error" in parsedImage) return NextResponse.json({ message: parsedImage.error }, { status: 400 });
 
   const existing = await prisma.category.findUnique({ where: { id } });
   if (!existing) {
@@ -51,7 +54,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     updateData.slug = slugify(name);
   }
   if (description !== undefined) updateData.description = description;
-  if (image !== undefined) updateData.image = image;
+  if (parsedImage.value !== undefined) updateData.image = parsedImage.value;
   if (isActive !== undefined) updateData.isActive = isActive;
   if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
 

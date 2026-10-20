@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile } from "fs/promises";
-import { join, extname } from "path";
-import { existsSync } from "fs";
+import { readFile, stat } from "fs/promises";
+import { extname } from "path";
+import { resolveUploadFile, SERVABLE_TYPES } from "@/lib/uploads";
 
 export async function GET(
   request: NextRequest,
@@ -12,46 +12,35 @@ export async function GET(
     return new NextResponse("Not Found", { status: 404 });
   }
 
-  // Base directory for uploads
-  const UPLOAD_DIR = process.env.UPLOAD_DIR || join(/*turbopackIgnore: true*/ process.cwd(), "uploads");
-  
-  // Construct the resolved path
-  const relativePath = join(...path);
-  const filePath = join(UPLOAD_DIR, relativePath);
-
-  // Security check to prevent directory traversal
-  // Make sure the resolved path is inside UPLOAD_DIR
-  if (!filePath.startsWith(UPLOAD_DIR)) {
-    return new NextResponse("Forbidden", { status: 403 });
+  // Only image types we upload are served (no HTML/SVG that could run script on our origin)
+  const contentType = SERVABLE_TYPES[extname(path[path.length - 1]).toLowerCase()];
+  if (!contentType) {
+    return new NextResponse("Not Found", { status: 404 });
   }
 
-  if (!existsSync(filePath)) {
+  // Resolves inside UPLOAD_DIR or returns null for traversal attempts / missing files
+  const filePath = await resolveUploadFile(path);
+  if (!filePath) {
     return new NextResponse("Not Found", { status: 404 });
   }
 
   try {
-    const fileBuffer = await readFile(filePath);
-    
-    // Determine the Content-Type
-    const ext = extname(filePath).toLowerCase();
-    const mimeTypes: Record<string, string> = {
-      ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg",
-      ".png": "image/png",
-      ".webp": "image/webp",
-      ".gif": "image/gif",
-      ".svg": "image/svg+xml",
-    };
-    const contentType = mimeTypes[ext] || "application/octet-stream";
+    const info = await stat(filePath);
+    if (!info.isFile()) return new NextResponse("Not Found", { status: 404 });
 
+    const fileBuffer = await readFile(filePath);
     return new NextResponse(fileBuffer, {
       headers: {
         "Content-Type": contentType,
+        "Content-Length": String(info.size),
+        // File names are random UUIDs and never overwritten, so they can be cached forever
         "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; sandbox",
       },
     });
   } catch (error) {
-    console.error("Error reading file:", error);
+    console.error("Error reading upload:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

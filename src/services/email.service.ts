@@ -341,8 +341,11 @@ export const getAdminRecipients = (): string =>
 export const cleanHeaderText = (v: unknown, max = 160): string =>
   String(v ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").trim().slice(0, max);
 
+// The domain must end in a letters-only extension (rejects e.g. "user@gmail.com123"). Keep in sync with the frontend's lib/validation.ts.
 export const isValidEmail = (v: unknown): v is string =>
-  typeof v === "string" && v.length <= 254 && /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(v);
+  typeof v === "string" &&
+  v.length <= 254 &&
+  /^[A-Za-z0-9._%+-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/.test(v);
 
 export interface AdminFormField {
   label: string;

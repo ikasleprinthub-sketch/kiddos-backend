@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isUploadUrl } from "@/lib/uploads";
 import { isValidEmail, sendAdminFormEmail } from "@/services/email.service";
 
 export async function POST(request: NextRequest) {
@@ -9,11 +10,19 @@ export async function POST(request: NextRequest) {
     if (typeof body.name !== "string" || !body.name.trim()) {
       return NextResponse.json({ message: "Name is required" }, { status: 400 });
     }
+    if (!/^[a-zA-Z][a-zA-Z\s.]{1,99}$/.test(body.name.trim())) {
+      return NextResponse.json({ message: "Name may contain only letters and spaces" }, { status: 400 });
+    }
     if (!isValidEmail(typeof body.email === "string" ? body.email.trim() : "")) {
       return NextResponse.json({ message: "Enter a valid email address" }, { status: 400 });
     }
     if (typeof body.mobile !== "string" || !body.mobile.trim()) {
       return NextResponse.json({ message: "Mobile number is required" }, { status: 400 });
+    }
+
+    // The optional photo must be one uploaded through /api/upload (folder "franchises"), not an arbitrary URL
+    if (body.image && !isUploadUrl(body.image, "franchises")) {
+      return NextResponse.json({ message: "Invalid image. Please upload the photo again." }, { status: 400 });
     }
 
     // Store the inquiry in the dedicated FranchiseInquiry table

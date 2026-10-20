@@ -60,6 +60,8 @@ export function validateShippingAddress(address: ShippingAddressInput | undefine
       if (config[field]) return `${FIELD_LABELS[field]} is required`;
       continue;
     }
+    // Name: starts with a letter; letters (any language), spaces, . ' - only — no digit-only names
+    if (field === "name" && !/^\p{L}[\p{L}\p{M}\s.'-]{1,99}$/u.test(text)) return "Enter a valid name (letters and spaces only)";
     if (field === "phone" && !/^[6-9]\d{9}$/.test(text)) return "Enter a valid 10-digit mobile number";
     if (field === "pincode" && !/^\d{6}$/.test(text)) return "Enter a valid 6-digit pincode";
   }
