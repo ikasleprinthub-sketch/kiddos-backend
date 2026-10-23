@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isUploadUrl } from "@/lib/uploads";
+import { isValidMobile } from "@/lib/validation";
 import { isValidEmail, sendAdminFormEmail } from "@/services/email.service";
 
 export async function POST(request: NextRequest) {
@@ -18,6 +19,9 @@ export async function POST(request: NextRequest) {
     }
     if (typeof body.mobile !== "string" || !body.mobile.trim()) {
       return NextResponse.json({ message: "Mobile number is required" }, { status: 400 });
+    }
+    if (!isValidMobile(body.mobile)) {
+      return NextResponse.json({ message: "Enter a valid 10-digit mobile number" }, { status: 400 });
     }
 
     // The optional photo must be one uploaded through /api/upload (folder "franchises"), not an arbitrary URL

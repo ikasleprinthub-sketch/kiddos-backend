@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/services/email.service";
+import { isValidEmail, sendEmail } from "@/services/email.service";
+import { isValidMobile, isValidName } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,8 +16,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const normalizedEmail = email.toLowerCase();
-    const normalizedResource = resource.toUpperCase(); // "BROCHURE" or "APPLICATION_FORM"
+    if (!isValidName(name)) {
+      return NextResponse.json({ message: "Please enter a valid full name." }, { status: 400 });
+    }
+    if (!isValidEmail(typeof email === "string" ? email.trim() : "")) {
+      return NextResponse.json({ message: "Please enter a valid email address." }, { status: 400 });
+    }
+    if (!isValidMobile(mobile)) {
+      return NextResponse.json({ message: "Please enter a valid 10-digit mobile number." }, { status: 400 });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedResource = String(resource).toUpperCase(); // "BROCHURE" or "APPLICATION_FORM"
 
     if (normalizedResource !== "BROCHURE" && normalizedResource !== "APPLICATION_FORM") {
       return NextResponse.json(
@@ -45,8 +56,8 @@ export async function POST(request: NextRequest) {
         type: "DOWNLOAD_VERIFICATION",
         expiresAt,
         tempData: {
-          name,
-          mobile,
+          name: name.trim(),
+          mobile: mobile.trim(),
           resource: normalizedResource,
         },
       },

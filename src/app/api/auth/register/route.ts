@@ -2,16 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/services/email.service";
+import { isValidMobile } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password, role } = body;
+    const { name, email, password, phone, role } = body;
 
     // 1. Basic validation
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !phone) {
       return NextResponse.json(
-        { message: "Missing required fields: name, email, password" },
+        { message: "Missing required fields: name, email, password, phone" },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidMobile(phone)) {
+      return NextResponse.json(
+        { message: "Please enter a valid 10-digit mobile number" },
         { status: 400 }
       );
     }
@@ -65,6 +73,7 @@ export async function POST(request: NextRequest) {
         tempData: {
           name,
           password: hashedPassword,
+          phone: phone.trim(),
           role: finalRole,
         },
       },

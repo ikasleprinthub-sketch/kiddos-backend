@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
           name: tempData.name,
           email: normalizedEmail,
           password: tempData.password,
+          phone: tempData.phone || null,
           role: tempData.role || "USER",
           isVerified: true,
         },

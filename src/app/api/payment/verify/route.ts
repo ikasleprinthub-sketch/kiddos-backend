@@ -6,11 +6,21 @@ import crypto from "crypto";
 import { getDeliveryFieldConfig, validateShippingAddress, normalizeShippingAddress, type DeliveryFieldConfig } from "@/lib/delivery-fields";
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/services/email.service";
 
-function generateOrderNumber(): string {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `KD${timestamp}${random}`;
+type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+/** Readable, per-year sequential order IDs: KF-YYYY-NNNN (e.g. KF-2026-0042). */
+async function generateOrderNumber(tx: Tx): Promise<string> {
+  const prefix = `KF-${new Date().getFullYear()}-`;
+  const last = await tx.order.findFirst({
+    where: { orderNumber: { startsWith: prefix } },
+    orderBy: { createdAt: "desc" },
+    select: { orderNumber: true },
+  });
+  const next = (last ? parseInt(last.orderNumber.slice(prefix.length), 10) || 0 : 0) + 1;
+  return `${prefix}${String(next).padStart(4, "0")}`;
 }
+
+const ORDER_CREATE_ATTEMPTS = 5;
 
 interface LineItem {
   productId: string;
@@ -172,78 +182,84 @@ async function verifyPayment(request: NextRequest) {
 
   // Create the order, update coupon usage and deduct stock atomically.
   // The unique razorpayPaymentId makes a concurrent duplicate fail and roll everything back.
-  const orderNumber = generateOrderNumber();
+  // A parallel checkout can take the same sequential order number; that P2002 is retried below.
   let order;
-  try {
-    order = await prisma.$transaction(async (tx) => {
-      let couponId: string | null = null;
-      if (couponCode) {
-        const coupon = await tx.coupon.findUnique({ where: { code: couponCode.toUpperCase() } });
-        if (coupon) {
-          couponId = coupon.id;
-          await tx.coupon.update({
-            where: { id: coupon.id },
-            data: { usedCount: { increment: 1 } },
-          });
+  for (let attempt = 1; ; attempt++) {
+    try {
+      order = await prisma.$transaction(async (tx) => {
+        const orderNumber = await generateOrderNumber(tx);
+        let couponId: string | null = null;
+        if (couponCode) {
+          const coupon = await tx.coupon.findUnique({ where: { code: couponCode.toUpperCase() } });
+          if (coupon) {
+            couponId = coupon.id;
+            await tx.coupon.update({
+              where: { id: coupon.id },
+              data: { usedCount: { increment: 1 } },
+            });
+          }
         }
-      }
 
-      const created = await tx.order.create({
-        data: {
-          orderNumber,
-          userId: user.id,
-          status: "CONFIRMED",
-          paymentStatus: "PAID",
-          paymentMethod: "RAZORPAY",
-          razorpayPaymentId,
-          subtotal: Number(orderSummary.subtotal),
-          discount: Number(orderSummary.discount),
-          deliveryFee: Number(orderSummary.deliveryFee),
-          total: Number(orderSummary.total),
-          couponId,
-          notes: notes || null,
-          // keep only the known address fields (optional ones may be empty)
-          shippingAddress: address,
-          items: {
-            create: orderSummary.lineItems.map((item) => ({
-              productId: item.productId,
-              variantId: item.variantId || null,
-              quantity: item.quantity,
-              price: item.unitPrice,
-              total: item.lineTotal,
-            })),
+        const created = await tx.order.create({
+          data: {
+            orderNumber,
+            userId: user.id,
+            status: "CONFIRMED",
+            paymentStatus: "PAID",
+            paymentMethod: "RAZORPAY",
+            razorpayPaymentId,
+            subtotal: Number(orderSummary.subtotal),
+            discount: Number(orderSummary.discount),
+            deliveryFee: Number(orderSummary.deliveryFee),
+            total: Number(orderSummary.total),
+            couponId,
+            notes: notes || null,
+            // keep only the known address fields (optional ones may be empty)
+            shippingAddress: address,
+            items: {
+              create: orderSummary.lineItems.map((item) => ({
+                productId: item.productId,
+                variantId: item.variantId || null,
+                quantity: item.quantity,
+                price: item.unitPrice,
+                total: item.lineTotal,
+              })),
+            },
           },
-        },
-        include: {
-          items: { include: { product: { select: { id: true, name: true } } } },
-        },
-      });
+          include: {
+            items: { include: { product: { select: { id: true, name: true } } } },
+          },
+        });
 
-      // Deduct stock
-      for (const item of orderSummary.lineItems) {
-        if (item.variantId) {
-          await tx.productVariant.update({
-            where: { id: item.variantId },
-            data: { stock: { decrement: item.quantity } },
-          });
-        } else {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { decrement: item.quantity } },
-          });
+        // Deduct stock
+        for (const item of orderSummary.lineItems) {
+          if (item.variantId) {
+            await tx.productVariant.update({
+              where: { id: item.variantId },
+              data: { stock: { decrement: item.quantity } },
+            });
+          } else {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: { decrement: item.quantity } },
+            });
+          }
         }
-      }
 
-      return created;
-      // order + items + coupon + stock commit together or not at all; default 5s is too tight for big carts
-    }, { maxWait: 10000, timeout: 30000 });
-  } catch (err) {
-    // Lost a race with a parallel request for the same payment: return that order instead
-    if ((err as { code?: string }).code === "P2002") {
-      const winner = await prisma.order.findUnique({ where: { razorpayPaymentId } });
-      if (winner) return orderResponse(winner, razorpayPaymentId);
+        return created;
+        // order + items + coupon + stock commit together or not at all; default 5s is too tight for big carts
+      }, { maxWait: 10000, timeout: 30000 });
+      break;
+    } catch (err) {
+      if ((err as { code?: string }).code === "P2002") {
+        // Lost a race with a parallel request for the same payment: return that order instead
+        const winner = await prisma.order.findUnique({ where: { razorpayPaymentId } });
+        if (winner) return orderResponse(winner, razorpayPaymentId);
+        // Otherwise another order took this order number: try again with the next one
+        if (attempt < ORDER_CREATE_ATTEMPTS) continue;
+      }
+      throw err;
     }
-    throw err;
   }
 
   // Send confirmation email (non-blocking — don't fail the response if email errors)

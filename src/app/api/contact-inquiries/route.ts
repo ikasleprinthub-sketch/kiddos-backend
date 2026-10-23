@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
     const { name, email, phone, subject, message } = body;
 
     if (!name?.trim()) return NextResponse.json({ message: "Name is required" }, { status: 400 });
+    if (!/^[a-zA-Z][a-zA-Z\s.]{1,99}$/.test(name.trim())) return NextResponse.json({ message: "Please enter a valid name using alphabetic characters." }, { status: 400 });
     if (!email?.trim()) return NextResponse.json({ message: "Email is required" }, { status: 400 });
     if (!subject?.trim()) return NextResponse.json({ message: "Subject is required" }, { status: 400 });
     if (!message?.trim()) return NextResponse.json({ message: "Message is required" }, { status: 400 });
