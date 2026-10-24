@@ -11,17 +11,28 @@ export async function GET(request: NextRequest) {
   const limit = Math.max(1, parseInt(searchParams.get("limit") || "10"));
   const search = (searchParams.get("search") || "").toLowerCase().trim();
 
+  const statusParam = (searchParams.get("status") || "").toUpperCase().trim();
+  const validStatus = ["NEW", "PENDING", "CONTACTED"].includes(statusParam) ? statusParam : null;
+
   try {
-    const whereClause = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: "insensitive" as const } },
-            { email: { contains: search, mode: "insensitive" as const } },
-            { city: { contains: search, mode: "insensitive" as const } },
-            { state: { contains: search, mode: "insensitive" as const } },
-            { mobile: { contains: search, mode: "insensitive" as const } },
-          ],
-        }
+    const whereConditions: any[] = [];
+    if (search) {
+      whereConditions.push({
+        OR: [
+          { name: { contains: search, mode: "insensitive" as const } },
+          { email: { contains: search, mode: "insensitive" as const } },
+          { city: { contains: search, mode: "insensitive" as const } },
+          { state: { contains: search, mode: "insensitive" as const } },
+          { mobile: { contains: search, mode: "insensitive" as const } },
+        ],
+      });
+    }
+    if (validStatus) {
+      whereConditions.push({ status: validStatus });
+    }
+
+    const whereClause = whereConditions.length > 0
+      ? (whereConditions.length === 1 ? whereConditions[0] : { AND: whereConditions })
       : {};
 
     const [total, inquiries] = await Promise.all([

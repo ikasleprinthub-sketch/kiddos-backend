@@ -25,11 +25,35 @@ if (process.env.NODE_ENV === "development") {
     .then(async () => {
       console.log("Migration: Running database self-migration...");
       
-      // 1. Add image column to franchise_inquiries if it does not exist
+      // 1. Ensure rate_limit_buckets table exists for upload rate limiting
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "rate_limit_buckets" (
+          "key" TEXT NOT NULL,
+          "count" INTEGER NOT NULL,
+          "windowStart" TIMESTAMP(3) NOT NULL,
+          CONSTRAINT "rate_limit_buckets_pkey" PRIMARY KEY ("key")
+        );
+        CREATE INDEX IF NOT EXISTS "rate_limit_buckets_windowStart_idx" ON "rate_limit_buckets"("windowStart");
+      `).catch(err => console.error("Failed to ensure rate_limit_buckets table:", err));
+
+      // 2. Ensure FranchiseInquiryStatus enum and status column exist
+      await prisma.$executeRawUnsafe(`
+        DO $$ BEGIN
+          CREATE TYPE "FranchiseInquiryStatus" AS ENUM ('NEW', 'PENDING', 'CONTACTED');
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$;
+      `).catch(err => console.error("Failed to ensure FranchiseInquiryStatus enum:", err));
+
+      // 3. Add image and status column to franchise_inquiries if they do not exist
       await prisma.$executeRawUnsafe(`
         ALTER TABLE franchise_inquiries 
-        ADD COLUMN IF NOT EXISTS image TEXT
-      `).catch(err => console.error("Failed to add image column:", err));
+        ADD COLUMN IF NOT EXISTS image TEXT;
+        ALTER TABLE franchise_inquiries 
+        ADD COLUMN IF NOT EXISTS "status" "FranchiseInquiryStatus" NOT NULL DEFAULT 'PENDING';
+        ALTER TABLE franchise_inquiries 
+        ALTER COLUMN "status" SET DEFAULT 'PENDING';
+      `).catch(err => console.error("Failed to add image or status column:", err));
 
       // 2. Seed default settings for the franchises page
       const settingsToSeed = [

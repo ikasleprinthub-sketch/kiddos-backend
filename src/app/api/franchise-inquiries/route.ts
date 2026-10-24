@@ -24,32 +24,78 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Enter a valid 10-digit mobile number" }, { status: 400 });
     }
 
+    // Normalize image if sent as a full URL (e.g., http://localhost:5050/uploads/franchises/...)
+    let image = typeof body.image === "string" ? body.image.trim() : null;
+    if (image) {
+      if (image.startsWith("http://") || image.startsWith("https://")) {
+        try {
+          image = new URL(image).pathname;
+        } catch {
+          // ignore parsing error
+        }
+      }
+    }
+
     // The optional photo must be one uploaded through /api/upload (folder "franchises"), not an arbitrary URL
-    if (body.image && !isUploadUrl(body.image, "franchises")) {
+    if (image && !isUploadUrl(image, "franchises")) {
       return NextResponse.json({ message: "Invalid image. Please upload the photo again." }, { status: 400 });
     }
 
+    // Ensure appropriate initial status (default PENDING for Admin Panel -> Franchise Leads)
+    const initialStatus = typeof body.status === "string" && ["NEW", "PENDING", "CONTACTED"].includes(body.status.toUpperCase())
+      ? body.status.toUpperCase()
+      : "PENDING";
+
+    const inquiryData = {
+      name: body.name.trim(),
+      email: body.email.trim(),
+      mobile: body.mobile.trim(),
+      alternate: typeof body.alternate === "string" ? body.alternate.trim() || null : null,
+      preferredLocation: typeof body.preferredLocation === "string" ? body.preferredLocation.trim() || null : null,
+      hearAboutUs: typeof body.hearAboutUs === "string" ? body.hearAboutUs.trim() || null : null,
+      country: typeof body.country === "string" ? body.country.trim() || null : null,
+      state: typeof body.state === "string" ? body.state.trim() || null : null,
+      city: typeof body.city === "string" ? body.city.trim() || null : null,
+      zipcode: typeof body.zipcode === "string" ? body.zipcode.trim() || null : (typeof body.pincode === "string" ? body.pincode.trim() || null : null),
+      profession: typeof body.profession === "string" ? body.profession.trim() || null : null,
+      aboutBusiness: typeof body.aboutBusiness === "string" ? body.aboutBusiness.trim() || null : null,
+      package: typeof body.package === "string" ? body.package.trim() || null : null,
+      readyToStart: typeof body.readyToStart === "string" ? body.readyToStart.trim() || null : null,
+      message: typeof body.message === "string" ? body.message.trim() || null : null,
+      image: image || null,
+      status: initialStatus as any,
+    };
+
     // Store the inquiry in the dedicated FranchiseInquiry table
-    const inquiry = await (prisma.franchiseInquiry as any).create({
-      data: {
-        name: body.name,
-        email: body.email,
-        mobile: body.mobile,
-        alternate: body.alternate || null,
-        preferredLocation: body.preferredLocation || null,
-        hearAboutUs: body.hearAboutUs || null,
-        country: body.country || null,
-        state: body.state || null,
-        city: body.city || null,
-        zipcode: body.zipcode || body.pincode || null,
-        profession: body.profession || null,
-        aboutBusiness: body.aboutBusiness || null,
-        package: body.package || null,
-        readyToStart: body.readyToStart || null,
-        message: body.message || null,
-        image: body.image || null,
-      },
-    });
+    let inquiry;
+    try {
+      inquiry = await prisma.franchiseInquiry.create({
+        data: inquiryData,
+      });
+    } catch (createError: any) {
+      const errMsg = String(createError?.message || "");
+      // If status column or enum doesn't exist in the database, auto-migrate and retry
+      if (errMsg.includes("status") || createError?.code === "42703") {
+        console.warn("Franchise inquiry table missing status column/enum. Running auto-migration...");
+        await prisma.$executeRawUnsafe(`
+          DO $$ BEGIN
+            CREATE TYPE "FranchiseInquiryStatus" AS ENUM ('NEW', 'PENDING', 'CONTACTED');
+          EXCEPTION
+            WHEN duplicate_object THEN null;
+          END $$;
+          ALTER TABLE "franchise_inquiries" 
+          ADD COLUMN IF NOT EXISTS "status" "FranchiseInquiryStatus" NOT NULL DEFAULT 'PENDING';
+          ALTER TABLE "franchise_inquiries" 
+          ALTER COLUMN "status" SET DEFAULT 'PENDING';
+        `).catch(err => console.error("Auto-migration retry failed:", err));
+
+        inquiry = await prisma.franchiseInquiry.create({
+          data: inquiryData,
+        });
+      } else {
+        throw createError;
+      }
+    }
 
     // Saved already: a mail problem is logged inside and never changes the response
     void sendAdminFormEmail({

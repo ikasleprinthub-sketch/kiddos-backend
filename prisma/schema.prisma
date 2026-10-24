@@ -242,7 +242,7 @@ model FranchiseInquiry {
   readyToStart      String?
   message           String?
   image             String?
-  status            FranchiseInquiryStatus @default(NEW)
+  status            FranchiseInquiryStatus @default(PENDING)
   createdAt         DateTime @default(now())
 
   @@map("franchise_inquiries")

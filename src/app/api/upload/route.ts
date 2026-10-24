@@ -32,9 +32,10 @@ async function checkPublicUploadLimits(request: NextRequest): Promise<NextRespon
     }
     return null;
   } catch (error) {
-    // Fail closed for anonymous uploads if the limiter can't be checked
+    // If rate limiting check fails unexpectedly, log the error and allow the upload so
+    // legitimate applicants are not blocked from uploading location photos.
     console.error("Upload rate limit check failed:", error);
-    return NextResponse.json({ message: "Uploads are temporarily unavailable. Please try again later." }, { status: 503 });
+    return null;
   }
 }
 

@@ -8,22 +8,52 @@ import { prisma } from "@/lib/prisma";
  * Returns true when the request is allowed, false when the limit for this window is used up.
  */
 export async function consumeRateLimit(key: string, limit: number, windowSeconds: number): Promise<boolean> {
-  const rows = await prisma.$queryRaw<{ count: number }[]>`
-    INSERT INTO "rate_limit_buckets" ("key", "count", "windowStart")
-    VALUES (${key}, 1, now())
-    ON CONFLICT ("key") DO UPDATE SET
-      "count" = CASE WHEN "rate_limit_buckets"."windowStart" <= now() - make_interval(secs => ${windowSeconds})
-                     THEN 1 ELSE "rate_limit_buckets"."count" + 1 END,
-      "windowStart" = CASE WHEN "rate_limit_buckets"."windowStart" <= now() - make_interval(secs => ${windowSeconds})
-                           THEN now() ELSE "rate_limit_buckets"."windowStart" END
-    RETURNING "count"`;
+  try {
+    const rows = await prisma.$queryRaw<{ count: number }[]>`
+      INSERT INTO "rate_limit_buckets" ("key", "count", "windowStart")
+      VALUES (${key}, 1, now())
+      ON CONFLICT ("key") DO UPDATE SET
+        "count" = CASE WHEN "rate_limit_buckets"."windowStart" <= now() - make_interval(secs => ${windowSeconds})
+                       THEN 1 ELSE "rate_limit_buckets"."count" + 1 END,
+        "windowStart" = CASE WHEN "rate_limit_buckets"."windowStart" <= now() - make_interval(secs => ${windowSeconds})
+                             THEN now() ELSE "rate_limit_buckets"."windowStart" END
+      RETURNING "count"`;
 
-  // Occasionally drop buckets idle for over a day so the table stays small
-  if (Math.random() < 0.01) {
-    prisma.$executeRaw`DELETE FROM "rate_limit_buckets" WHERE "windowStart" < now() - interval '1 day'`.catch(() => {});
+    // Occasionally drop buckets idle for over a day so the table stays small
+    if (Math.random() < 0.01) {
+      prisma.$executeRaw`DELETE FROM "rate_limit_buckets" WHERE "windowStart" < now() - interval '1 day'`.catch(() => {});
+    }
+
+    return Number(rows[0]?.count ?? 0) <= limit;
+  } catch (error: any) {
+    const msg = String(error?.message || "");
+    if (msg.includes("rate_limit_buckets") || error?.code === "42P01") {
+      try {
+        await prisma.$executeRawUnsafe(`
+          CREATE TABLE IF NOT EXISTS "rate_limit_buckets" (
+            "key" TEXT NOT NULL,
+            "count" INTEGER NOT NULL,
+            "windowStart" TIMESTAMP(3) NOT NULL,
+            CONSTRAINT "rate_limit_buckets_pkey" PRIMARY KEY ("key")
+          );
+          CREATE INDEX IF NOT EXISTS "rate_limit_buckets_windowStart_idx" ON "rate_limit_buckets"("windowStart");
+        `);
+        const rows = await prisma.$queryRaw<{ count: number }[]>`
+          INSERT INTO "rate_limit_buckets" ("key", "count", "windowStart")
+          VALUES (${key}, 1, now())
+          ON CONFLICT ("key") DO UPDATE SET
+            "count" = CASE WHEN "rate_limit_buckets"."windowStart" <= now() - make_interval(secs => ${windowSeconds})
+                           THEN 1 ELSE "rate_limit_buckets"."count" + 1 END,
+            "windowStart" = CASE WHEN "rate_limit_buckets"."windowStart" <= now() - make_interval(secs => ${windowSeconds})
+                                 THEN now() ELSE "rate_limit_buckets"."windowStart" END
+          RETURNING "count"`;
+        return Number(rows[0]?.count ?? 0) <= limit;
+      } catch (retryErr) {
+        console.error("Rate limit bucket auto-creation or retry failed:", retryErr);
+      }
+    }
+    throw error;
   }
-
-  return Number(rows[0]?.count ?? 0) <= limit;
 }
 
 /**
