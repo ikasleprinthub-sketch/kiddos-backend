@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
   const featured = searchParams.get("featured");
   const popularBatter = searchParams.get("popularBatter");
   const spiceOil = searchParams.get("spiceOil");
+  const offer = searchParams.get("offer");
+  const combo = searchParams.get("combo");
   const skip = (page - 1) * limit;
 
   const where: Record<string, unknown> = { isActive: true };
@@ -36,6 +38,14 @@ export async function GET(request: NextRequest) {
 
   if (spiceOil === "true") {
     where.isSpiceOil = true;
+  }
+
+  if (offer === "true") {
+    where.isOffer = true;
+  }
+
+  if (combo === "true") {
+    where.isCombo = true;
   }
 
   const [products, total] = await Promise.all([

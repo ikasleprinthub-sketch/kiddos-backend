@@ -71,6 +71,8 @@ model Product {
   updatedAt           DateTime         @updatedAt
   isPopularBatter     Boolean          @default(false)
   isSpiceOil          Boolean          @default(false)
+  isOffer             Boolean          @default(false)
+  isCombo             Boolean          @default(false)
   healthBenefits      String?
   ingredients         String?
   nutrientFacts       Json?
@@ -124,6 +126,8 @@ model Order {
   paymentStatus     PaymentStatus @default(PENDING)
   paymentMethod     String?
   razorpayPaymentId String?       @unique
+  razorpayRefundId  String?       @unique
+  refundStatus      String?
   subtotal          Decimal       @db.Decimal(10, 2)
   discount          Decimal       @default(0) @db.Decimal(10, 2)
   deliveryFee       Decimal       @default(0) @db.Decimal(10, 2)

@@ -1,0 +1,143 @@
+[     125ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[     144ms] [LOG] [Fast Refresh] done in 123ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[     897ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[     973ms] [LOG] [HMR] connected @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[    1958ms] [WARNING] Image with src "/images/razorpay.webp" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio. @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[    2193ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[    2331ms] [LOG] [Fast Refresh] done in 238ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  253130ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  275782ms] [LOG] [Fast Refresh] done in 22682ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  276002ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  283097ms] [LOG] [Fast Refresh] done in 7285ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  300682ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  301421ms] [LOG] [Fast Refresh] done in 844ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  301586ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  301644ms] [LOG] [Fast Refresh] done in 163ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  303384ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  303472ms] [LOG] [Fast Refresh] done in 189ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  313625ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  345007ms] [LOG] [Fast Refresh] done in 31483ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  345215ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  345583ms] [LOG] [Fast Refresh] done in 478ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  348652ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  348821ms] [LOG] [HMR] connected @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  350600ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  350742ms] [LOG] [Fast Refresh] done in 254ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  350853ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  351333ms] [LOG] [Fast Refresh] done in 584ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  352303ms] [WARNING] Image with src "/images/razorpay.webp" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio. @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  353309ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  354824ms] [LOG] [Fast Refresh] done in 1626ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  368299ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  371446ms] [LOG] [Fast Refresh] done in 3171ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  371600ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  372844ms] [LOG] [Fast Refresh] done in 1345ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  395761ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  407357ms] [ERROR] ./components/common/Header.tsx:783:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  781 |     </header>
+  782 |   );
+> 783 | }
+      | ^
+  784 |
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./components/common/Header.tsx [Client Component Browser]
+    ./components/common/PublicShell.tsx [Client Component Browser]
+    ./components/common/PublicShell.tsx [Server Component]
+    ./app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/common/Header.tsx [Client Component SSR]
+    ./components/common/PublicShell.tsx [Client Component SSR]
+    ./components/common/PublicShell.tsx [Server Component]
+    ./app/layout.tsx [Server Component] @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:3318
+[  407417ms] [ERROR] ./components/common/Header.tsx:783:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  781 |     </header>
+  782 |   );
+> 783 | }
+      | ^
+  784 |
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./components/common/Header.tsx [Client Component Browser]
+    ./components/common/PublicShell.tsx [Client Component Browser]
+    ./components/common/PublicShell.tsx [Server Component]
+    ./app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/common/Header.tsx [Client Component SSR]
+    ./components/common/PublicShell.tsx [Client Component SSR]
+    ./components/common/PublicShell.tsx [Server Component]
+    ./app/layout.tsx [Server Component] @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:3318
+[  407526ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  408084ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  429075ms] [ERROR] ./components/common/Header.tsx:783:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  781 |     </header>
+  782 |   );
+> 783 | }
+      | ^
+  784 |
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./components/common/Header.tsx [Client Component Browser]
+    ./components/common/PublicShell.tsx [Client Component Browser]
+    ./components/common/PublicShell.tsx [Server Component]
+    ./app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/common/Header.tsx [Client Component SSR]
+    ./components/common/PublicShell.tsx [Client Component SSR]
+    ./components/common/PublicShell.tsx [Server Component]
+    ./app/layout.tsx [Server Component] @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:3318
+[  429084ms] [ERROR] ./components/common/Header.tsx:783:1
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  781 |     </header>
+  782 |   );
+> 783 | }
+      | ^
+  784 |
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./components/common/Header.tsx [Client Component Browser]
+    ./components/common/PublicShell.tsx [Client Component Browser]
+    ./components/common/PublicShell.tsx [Server Component]
+    ./app/layout.tsx [Server Component]
+
+  Client Component SSR:
+    ./components/common/Header.tsx [Client Component SSR]
+    ./components/common/PublicShell.tsx [Client Component SSR]
+    ./components/common/PublicShell.tsx [Server Component]
+    ./app/layout.tsx [Server Component] @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:3318
+[  429186ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  433037ms] [LOG] [Fast Refresh] done in 3864ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  433458ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3030/products?category=batters&_rsc=0Ylu2zasehcMruZ6:0
+[  433558ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  435341ms] [LOG] [Fast Refresh] done in 1884ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  435523ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  437044ms] [LOG] [Fast Refresh] done in 1622ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  445275ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  445653ms] [LOG] [HMR] connected @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  446177ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  447275ms] [LOG] [Fast Refresh] done in 1206ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  447616ms] [WARNING] Image with src "/images/razorpay.webp" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio. @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  448069ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  448169ms] [LOG] [Fast Refresh] done in 232ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  460877ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  460919ms] [LOG] [Fast Refresh] done in 146ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  461227ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  461281ms] [LOG] [Fast Refresh] done in 162ms @ http://localhost:3030/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477

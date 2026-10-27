@@ -40,7 +40,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = await request.json();
     const {
       name, description, price, salePrice, stock, sku,
-      categoryId, images, isActive, isFeatured, isPopularBatter, isSpiceOil, weight, unit, tags,
+      categoryId, images, isActive, isFeatured, isPopularBatter, isSpiceOil, isOffer, isCombo, weight, unit, tags,
       ingredients, healthBenefits, usageInstructions, nutrientFacts, shelfLife, storageInstructions,
       variants,
     } = body;
@@ -75,6 +75,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
   if (isPopularBatter !== undefined) updateData.isPopularBatter = isPopularBatter;
   if (isSpiceOil !== undefined) updateData.isSpiceOil = isSpiceOil;
+  if (isOffer !== undefined) updateData.isOffer = isOffer;
+  if (isCombo !== undefined) updateData.isCombo = isCombo;
   if (weight !== undefined) updateData.weight = weight || null;
   if (unit !== undefined) updateData.unit = unit;
   if (tags !== undefined) updateData.tags = tags;

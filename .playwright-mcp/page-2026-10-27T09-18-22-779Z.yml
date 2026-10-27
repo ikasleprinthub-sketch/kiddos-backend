@@ -1,0 +1,163 @@
+- generic [active] [ref=f1e1]:
+  - banner [ref=f1e2]:
+    - generic [ref=f1e4]:
+      - generic [ref=f1e5]:
+        - link [ref=f1e6] [cursor=pointer]:
+          - /url: /
+          - img "Kiddos Foods Logo" [ref=f1e8]
+        - link "Categories" [ref=f1e10] [cursor=pointer]:
+          - /url: /products
+      - navigation [ref=f1e19]:
+        - generic [ref=f1e20]:
+          - link "Home" [ref=f1e21] [cursor=pointer]:
+            - /url: /
+          - link "Products" [ref=f1e22] [cursor=pointer]:
+            - /url: /products
+          - link "About" [ref=f1e23] [cursor=pointer]:
+            - /url: /about
+          - link "Franchises" [ref=f1e24] [cursor=pointer]:
+            - /url: /franchises
+          - link "Contact" [ref=f1e25] [cursor=pointer]:
+            - /url: /contact
+      - generic [ref=f1e26]:
+        - link "View Wishlist" [ref=f1e27] [cursor=pointer]:
+          - /url: /wishlist
+        - link "View Cart" [ref=f1e30] [cursor=pointer]:
+          - /url: /cart
+        - link "Login" [ref=f1e36] [cursor=pointer]:
+          - /url: /login
+  - main [ref=f1e41]:
+    - generic [ref=f1e42]:
+      - generic [ref=f1e47]:
+        - heading "Our Products" [level=1] [ref=f1e48]
+        - generic [ref=f1e49]:
+          - link "Home" [ref=f1e50] [cursor=pointer]:
+            - /url: /
+          - generic [ref=f1e56]: Our Products
+      - generic [ref=f1e58]:
+        - complementary [ref=f1e59]:
+          - heading "Filter Options" [level=2] [ref=f1e60]
+          - heading "By Categories" [level=3] [ref=f1e62]
+          - generic [ref=f1e69]:
+            - heading "Price" [level=3] [ref=f1e70]
+            - generic [ref=f1e71]:
+              - generic [ref=f1e72]: ₹0 to ₹1000+
+              - generic [ref=f1e73]:
+                - slider [ref=f1e76] [cursor=pointer]: "0"
+                - slider [ref=f1e77] [cursor=pointer]: "1000"
+          - generic [ref=f1e78]:
+            - heading "By Promotions" [level=3] [ref=f1e79]
+            - generic [ref=f1e80]:
+              - generic [ref=f1e81] [cursor=pointer]:
+                - checkbox "New Arrivals" [ref=f1e83]
+                - generic [ref=f1e84]: New Arrivals
+              - generic [ref=f1e85] [cursor=pointer]:
+                - checkbox "Best Sellers" [ref=f1e87]
+                - generic [ref=f1e88]: Best Sellers
+              - generic [ref=f1e89] [cursor=pointer]:
+                - checkbox "On Sale" [ref=f1e91]
+                - generic [ref=f1e92]: On Sale
+          - generic [ref=f1e93]:
+            - heading "Availability" [level=3] [ref=f1e94]
+            - generic [ref=f1e95]:
+              - generic [ref=f1e96] [cursor=pointer]:
+                - checkbox "In Stock" [ref=f1e98]
+                - generic [ref=f1e99]: In Stock
+              - generic [ref=f1e100] [cursor=pointer]:
+                - checkbox "Out of Stocks" [ref=f1e102]
+                - generic [ref=f1e103]: Out of Stocks
+        - main [ref=f1e104]:
+          - textbox "Search products…" [ref=f1e106]
+          - generic [ref=f1e107]:
+            - generic [ref=f1e108]:
+              - paragraph [ref=f1e109]: Loading results...
+              - generic [ref=f1e110]:
+                - generic [ref=f1e111]: "Sort by :"
+                - combobox "Sort by :" [ref=f1e112] [cursor=pointer]:
+                  - option "Default Sorting" [selected]
+                  - 'option "Price: Low to High"'
+                  - 'option "Price: High to Low"'
+            - generic [ref=f1e113]:
+              - generic [ref=f1e114]: Active Filter
+              - generic [ref=f1e115]:
+                - text: batters
+                - button [ref=f1e116]
+              - button "Clear All" [ref=f1e120]
+  - contentinfo [ref=f1e182]:
+    - generic [ref=f1e184]:
+      - generic [ref=f1e185]:
+        - generic [ref=f1e186]:
+          - img "Kiddos Foods Logo" [ref=f1e187]
+          - generic [ref=f1e188]:
+            - paragraph [ref=f1e189]: Kiddos Foods
+            - paragraph [ref=f1e190]: Make healthy posterity
+        - paragraph [ref=f1e191]:
+          - text: Bringing Amma's love to your plate with
+          - strong [ref=f1e192]: 30+ unique dosa batters
+          - text: . Pure, traditional, and irresistibly delicious. That's Kiddos Foods.
+        - generic [ref=f1e193]:
+          - link "Facebook" [ref=f1e194] [cursor=pointer]:
+            - /url: https://www.facebook.com/kiddosfoodsofficial/
+          - link "YouTube" [ref=f1e197] [cursor=pointer]:
+            - /url: https://www.youtube.com/@kiddosfoods
+          - link "Instagram" [ref=f1e201] [cursor=pointer]:
+            - /url: https://www.instagram.com/kiddosfoods_official?igsh=MXIwdWhsbzhzNGx6cg==
+      - generic [ref=f1e206]:
+        - heading "Quick Link" [level=3] [ref=f1e207]
+        - list [ref=f1e208]:
+          - listitem [ref=f1e209]:
+            - link "About Us" [ref=f1e210] [cursor=pointer]:
+              - /url: /about
+          - listitem [ref=f1e211]:
+            - link "Contact Us" [ref=f1e212] [cursor=pointer]:
+              - /url: /contact
+          - listitem [ref=f1e213]:
+            - link "FAQs" [ref=f1e214] [cursor=pointer]:
+              - /url: /faqs
+      - generic [ref=f1e215]:
+        - heading "Categories" [level=3] [ref=f1e216]
+        - list [ref=f1e217]:
+          - listitem [ref=f1e218]:
+            - link "Batter" [ref=f1e219] [cursor=pointer]:
+              - /url: /category/batter
+          - listitem [ref=f1e220]:
+            - link "Spice Blends" [ref=f1e221] [cursor=pointer]:
+              - /url: /category/spice-blends
+          - listitem [ref=f1e222]:
+            - link "Chutney Book" [ref=f1e223] [cursor=pointer]:
+              - /url: /category/chutney-book
+      - generic [ref=f1e224]:
+        - heading "Store Information" [level=3] [ref=f1e225]
+        - list [ref=f1e226]:
+          - listitem [ref=f1e227]:
+            - generic [ref=f1e231]: No.380, Sreevari Gardens, KNG Pudhur Pirivu, Coimbatore 641025
+          - listitem [ref=f1e232]:
+            - link "+91 78459 45455" [ref=f1e235] [cursor=pointer]:
+              - /url: tel:+917845945455
+          - listitem [ref=f1e236]:
+            - link "care@kiddosfoods.com" [ref=f1e240] [cursor=pointer]:
+              - /url: mailto:care@kiddosfoods.com
+    - generic [ref=f1e242]:
+      - link "Terms & Conditions" [ref=f1e243] [cursor=pointer]:
+        - /url: /terms
+      - link "Privacy Policy" [ref=f1e244] [cursor=pointer]:
+        - /url: /privacy
+      - link "Shipping Policy" [ref=f1e245] [cursor=pointer]:
+        - /url: /shipping
+      - link "Return Policy" [ref=f1e246] [cursor=pointer]:
+        - /url: /returns
+    - generic [ref=f1e248]:
+      - paragraph [ref=f1e249]:
+        - text: Copyright © 2026 Kiddos Foods | Crafted And Maintained By
+        - link "Ikasle Business Group" [ref=f1e250] [cursor=pointer]:
+          - /url: https://ikasleinnovations.com/
+      - img "Razorpay" [ref=f1e252]
+  - link "Chat with us on WhatsApp" [ref=f1e253] [cursor=pointer]:
+    - /url: https://wa.me/917845945455
+  - link "Download Catalogue" [ref=f1e256] [cursor=pointer]:
+    - /url: /Catalogue/KiddosFoods-Catalog.pdf
+  - link "Chutney Book Recipes" [ref=f1e260] [cursor=pointer]:
+    - /url: /category/chutney-book
+    - img [ref=f1e261]:
+      - generic [ref=f1e263]: CHUTNEY BOOK • RECIPE •
+  - button "Open Next.js Dev Tools" [ref=f1e272] [cursor=pointer]

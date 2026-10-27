@@ -1,0 +1,186 @@
+- generic [active] [ref=f4e1]:
+  - banner [ref=f4e2]:
+    - generic [ref=f4e4]:
+      - generic [ref=f4e5]:
+        - link [ref=f4e6] [cursor=pointer]:
+          - /url: /
+          - img "Kiddos Foods Logo" [ref=f4e8]
+        - link "Categories" [ref=f4e10] [cursor=pointer]:
+          - /url: /products
+      - navigation [ref=f4e19]:
+        - generic [ref=f4e20]:
+          - link "Home" [ref=f4e21] [cursor=pointer]:
+            - /url: /
+          - link "Products" [ref=f4e23] [cursor=pointer]:
+            - /url: /products
+          - link "About" [ref=f4e27] [cursor=pointer]:
+            - /url: /about
+          - link "Franchises" [ref=f4e28] [cursor=pointer]:
+            - /url: /franchises
+          - link "Contact" [ref=f4e29] [cursor=pointer]:
+            - /url: /contact
+      - generic [ref=f4e30]:
+        - link "View Wishlist" [ref=f4e31] [cursor=pointer]:
+          - /url: /wishlist
+        - link "View Cart" [ref=f4e34] [cursor=pointer]:
+          - /url: /cart
+        - link "Login" [ref=f4e40] [cursor=pointer]:
+          - /url: /login
+  - main [ref=f4e45]:
+    - generic [ref=f4e46]:
+      - heading "Kiddos Foods — traditional batters, millet foods, cold-pressed oils and spices" [level=1] [ref=f4e47]
+      - region "Kiddos Foods highlights" [ref=f4e48]:
+        - generic [ref=f4e54]:
+          - heading "Make Healthy Posterity" [level=2] [ref=f4e55]
+          - paragraph [ref=f4e56]: Traditional batters, millet foods, cold-pressed oils and spices — made the natural way by Kiddos Foods.
+          - link "Shop Now" [ref=f4e57] [cursor=pointer]:
+            - /url: /products
+      - generic:
+        - generic:
+          - generic:
+            - generic: 100% NATURAL
+            - generic: 100% HOME-MADE
+            - generic: 100% HEALTHY
+            - generic: NO PRESERVATIVE
+            - generic: NO ADDED COLOR
+            - generic: NO ARTIFICIAL FLAVORS
+          - generic:
+            - generic: 100% NATURAL
+            - generic: 100% HOME-MADE
+            - generic: 100% HEALTHY
+            - generic: NO PRESERVATIVE
+            - generic: NO ADDED COLOR
+            - generic: NO ARTIFICIAL FLAVORS
+          - generic:
+            - generic: 100% NATURAL
+            - generic: 100% HOME-MADE
+            - generic: 100% HEALTHY
+            - generic: NO PRESERVATIVE
+            - generic: NO ADDED COLOR
+            - generic: NO ARTIFICIAL FLAVORS
+          - generic:
+            - generic: 100% NATURAL
+            - generic: 100% HOME-MADE
+            - generic: 100% HEALTHY
+            - generic: NO PRESERVATIVE
+            - generic: NO ADDED COLOR
+            - generic: NO ARTIFICIAL FLAVORS
+      - generic [ref=f4e93]:
+        - generic [ref=f4e94]:
+          - generic [ref=f4e95]:
+            - img "About Kiddos Foods" [ref=f4e97]
+            - img "Fresh ingredients" [ref=f4e99]
+            - img "Organic produce" [ref=f4e101]
+            - img "Kiddos quality" [ref=f4e103]
+          - link:
+            - /url: /products
+            - img [ref=f4e105] [cursor=pointer]:
+              - generic [ref=f4e106]: SHOP NOW · SHOP NOW ·
+        - generic [ref=f4e110]:
+          - generic [ref=f4e111]: About Us
+          - generic [ref=f4e112]:
+            - heading "Your Journey to" [level=2] [ref=f4e113]
+            - heading "Wholesome Goodness" [level=2] [ref=f4e114]
+          - paragraph [ref=f4e115]: At Kiddos Foods, we believe every meal is a chance to nourish your family with the finest organic ingredients. From farm to your table, we craft products that are pure, healthy, and full of love.
+          - generic [ref=f4e116]:
+            - generic [ref=f4e117]:
+              - paragraph [ref=f4e118]: 15+
+              - paragraph [ref=f4e119]: Categories
+            - generic [ref=f4e120]:
+              - paragraph [ref=f4e121]: 200+
+              - paragraph [ref=f4e122]: Products
+            - generic [ref=f4e123]:
+              - paragraph [ref=f4e124]: 99%
+              - paragraph [ref=f4e125]: Satisfied Customers
+      - generic [ref=f4e127]:
+        - generic [ref=f4e128]:
+          - generic [ref=f4e129]: Our Products
+          - heading "Best Selling Products" [level=2] [ref=f4e130]
+          - paragraph [ref=f4e131]: Our most loved, high-quality products recommended for you
+        - generic [ref=f4e132]:
+          - button "Best Seller" [ref=f4e133] [cursor=pointer]
+          - button "Popular Batters" [ref=f4e134] [cursor=pointer]
+          - button "Spices & Oils" [ref=f4e135] [cursor=pointer]
+          - button "Offers" [ref=f4e136] [cursor=pointer]
+          - button "Combo" [ref=f4e137] [cursor=pointer]
+        - link "View All Products" [ref=f4e160] [cursor=pointer]:
+          - /url: /products
+  - contentinfo [ref=f4e161]:
+    - generic [ref=f4e163]:
+      - generic [ref=f4e164]:
+        - generic [ref=f4e165]:
+          - img "Kiddos Foods Logo" [ref=f4e166]
+          - generic [ref=f4e167]:
+            - paragraph [ref=f4e168]: Kiddos Foods
+            - paragraph [ref=f4e169]: Make healthy posterity
+        - paragraph [ref=f4e170]:
+          - text: Bringing Amma's love to your plate with
+          - strong [ref=f4e171]: 30+ unique dosa batters
+          - text: . Pure, traditional, and irresistibly delicious. That's Kiddos Foods.
+        - generic [ref=f4e172]:
+          - link "Facebook" [ref=f4e173] [cursor=pointer]:
+            - /url: https://www.facebook.com/kiddosfoodsofficial/
+          - link "YouTube" [ref=f4e176] [cursor=pointer]:
+            - /url: https://www.youtube.com/@kiddosfoods
+          - link "Instagram" [ref=f4e180] [cursor=pointer]:
+            - /url: https://www.instagram.com/kiddosfoods_official?igsh=MXIwdWhsbzhzNGx6cg==
+      - generic [ref=f4e185]:
+        - heading "Quick Link" [level=3] [ref=f4e186]
+        - list [ref=f4e187]:
+          - listitem [ref=f4e188]:
+            - link "About Us" [ref=f4e189] [cursor=pointer]:
+              - /url: /about
+          - listitem [ref=f4e190]:
+            - link "Contact Us" [ref=f4e191] [cursor=pointer]:
+              - /url: /contact
+          - listitem [ref=f4e192]:
+            - link "FAQs" [ref=f4e193] [cursor=pointer]:
+              - /url: /faqs
+      - generic [ref=f4e194]:
+        - heading "Categories" [level=3] [ref=f4e195]
+        - list [ref=f4e196]:
+          - listitem [ref=f4e197]:
+            - link "Batter" [ref=f4e198] [cursor=pointer]:
+              - /url: /category/batter
+          - listitem [ref=f4e199]:
+            - link "Spice Blends" [ref=f4e200] [cursor=pointer]:
+              - /url: /category/spice-blends
+          - listitem [ref=f4e201]:
+            - link "Chutney Book" [ref=f4e202] [cursor=pointer]:
+              - /url: /category/chutney-book
+      - generic [ref=f4e203]:
+        - heading "Store Information" [level=3] [ref=f4e204]
+        - list [ref=f4e205]:
+          - listitem [ref=f4e206]:
+            - generic [ref=f4e210]: No.380, Sreevari Gardens, KNG Pudhur Pirivu, Coimbatore 641025
+          - listitem [ref=f4e211]:
+            - link "+91 78459 45455" [ref=f4e214] [cursor=pointer]:
+              - /url: tel:+917845945455
+          - listitem [ref=f4e215]:
+            - link "care@kiddosfoods.com" [ref=f4e219] [cursor=pointer]:
+              - /url: mailto:care@kiddosfoods.com
+    - generic [ref=f4e221]:
+      - link "Terms & Conditions" [ref=f4e222] [cursor=pointer]:
+        - /url: /terms
+      - link "Privacy Policy" [ref=f4e223] [cursor=pointer]:
+        - /url: /privacy
+      - link "Shipping Policy" [ref=f4e224] [cursor=pointer]:
+        - /url: /shipping
+      - link "Return Policy" [ref=f4e225] [cursor=pointer]:
+        - /url: /returns
+    - generic [ref=f4e227]:
+      - paragraph [ref=f4e228]:
+        - text: Copyright © 2026 Kiddos Foods | Crafted And Maintained By
+        - link "Ikasle Business Group" [ref=f4e229] [cursor=pointer]:
+          - /url: https://ikasleinnovations.com/
+      - img "Razorpay" [ref=f4e231]
+  - link "Chat with us on WhatsApp" [ref=f4e232] [cursor=pointer]:
+    - /url: https://wa.me/917845945455
+  - link "Download Catalogue" [ref=f4e235] [cursor=pointer]:
+    - /url: /Catalogue/KiddosFoods-Catalog.pdf
+  - link "Chutney Book Recipes" [ref=f4e239] [cursor=pointer]:
+    - /url: /category/chutney-book
+    - img [ref=f4e240]:
+      - generic [ref=f4e242]: CHUTNEY BOOK • RECIPE •
+  - button "Open Next.js Dev Tools" [ref=f4e251] [cursor=pointer]
+  - alert [ref=f4e255]

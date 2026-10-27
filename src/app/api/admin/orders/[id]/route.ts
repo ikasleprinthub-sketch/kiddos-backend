@@ -41,6 +41,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const existing = await prisma.order.findUnique({ where: { id } });
   if (!existing) return NextResponse.json({ message: "Order not found" }, { status: 404 });
 
+  const isPaidOnline = existing.paymentMethod === "RAZORPAY" && existing.paymentStatus === "PAID";
+  if (isPaidOnline && status !== undefined && status !== "CANCELLED") {
+    return NextResponse.json(
+      { message: "Online-paid orders can only be cancelled; other status changes are locked" },
+      { status: 409 }
+    );
+  }
+  if (isPaidOnline && paymentStatus !== undefined) {
+    return NextResponse.json(
+      { message: "Payment status is locked for online-paid orders" },
+      { status: 409 }
+    );
+  }
+
   const updateData: Record<string, unknown> = {};
   if (status !== undefined) updateData.status = status;
   if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;

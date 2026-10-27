@@ -1,0 +1,30 @@
+
+> kiddos-backend@0.1.0 dev
+> next dev -p 5050
+
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:5050
+- Network:       http://192.168.0.112:5050
+- Environments: .env
+✓ Ready in 1691ms
+Creating turbopack project { dir: 'D:\\kiddos-website\\kiddos-backend', testMode: true }
+- Experiments (use with caution):
+  · serverActions
+
+Migration: Running database self-migration...
+ GET /api/admin/orders?page=1 200 in 3.4s (next.js: 2.7s, application-code: 688ms)
+Migration: Database checks and settings seed complete.
+Migration: Regenerating Prisma client...
+ POST /api/orders/not-a-real-order/cancel 401 in 1662ms (next.js: 1641ms, application-code: 21ms)
+Migration: Running database self-migration...
+Migration: Database checks and settings seed complete.
+Migration: Regenerating Prisma client...
+Prisma generate output: 
+✔ Generated Prisma Client (7.8.0) to .\src\generated\prisma in 404ms
+
+
+ POST /api/orders/not-a-real-order/cancel 401 in 36ms (next.js: 17ms, application-code: 19ms)
+Migration: Running database self-migration...
+ GET /api/admin/orders?page=1 200 in 212ms (next.js: 15ms, application-code: 197ms)
+ GET /api/admin/orders?page=1 200 in 97ms (next.js: 17ms, application-code: 80ms)
+[?25h

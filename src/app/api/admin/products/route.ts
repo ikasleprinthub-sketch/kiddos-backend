@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     const {
       name, description, price, salePrice, stock = 0, sku,
       categoryId, images = [], isActive = true, isFeatured = false,
-      isPopularBatter = false, isSpiceOil = false,
+      isPopularBatter = false, isSpiceOil = false, isOffer = false, isCombo = false,
       weight, unit, tags = [],
       ingredients, healthBenefits, usageInstructions, nutrientFacts, shelfLife, storageInstructions,
       variants = [],
@@ -115,6 +115,8 @@ export async function POST(request: NextRequest) {
         isFeatured,
         isPopularBatter,
         isSpiceOil,
+        isOffer,
+        isCombo,
         weight: weight ? Number(weight) : null,
         unit: unit || null,
         tags,
