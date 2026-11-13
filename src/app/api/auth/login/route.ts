@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { generateToken } from "@/lib/auth";
+import { limitLoginAttempts } from "@/lib/otp";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,12 +10,15 @@ export async function POST(request: NextRequest) {
     const { email, password } = body;
 
     // 1. Basic validation
-    if (!email || !password) {
+    if (typeof email !== "string" || typeof password !== "string" || !email || !password) {
       return NextResponse.json(
         { message: "Email and password are required" },
         { status: 400 }
       );
     }
+
+    const limited = await limitLoginAttempts(request, email.toLowerCase());
+    if (limited) return limited;
 
     // 2. Find user in database
     const user = await prisma.user.findUnique({
@@ -22,24 +26,28 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      // Check if there is a pending registration OTP
+      // A sign-up waiting for its email OTP: say so only to someone who knows that sign-up's password,
+      // so this endpoint can't be used to find out which emails are registered.
       const pendingOtp = await prisma.oTP.findFirst({
         where: {
           email: email.toLowerCase(),
           type: "VERIFY_EMAIL",
         },
       });
+      const pendingHash = (pendingOtp?.tempData as { password?: unknown } | null)?.password;
+      const pendingMatch = typeof pendingHash === "string" && (await bcrypt.compare(password, pendingHash));
 
-      if (pendingOtp) {
+      if (pendingMatch) {
         return NextResponse.json(
           { message: "Please verify your email address before logging in." },
           { status: 403 }
         );
       }
 
+      // Same answer as a wrong password
       return NextResponse.json(
-        { message: "User not found" },
-        { status: 404 }
+        { message: "Invalid email or password" },
+        { status: 401 }
       );
     }
 
@@ -78,6 +86,7 @@ export async function POST(request: NextRequest) {
     const token = generateToken({
       id: user.id,
       role: user.role,
+      tv: user.tokenVersion,
     });
 
     // 6. Build response using requested JSON format

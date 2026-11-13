@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parsePagination } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
-  const user = getUserFromRequest(request);
+  const user = await getUserFromRequest(request);
   if (!user) {
     return NextResponse.json({ message: "Authentication required" }, { status: 401 });
   }
 
   const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "10");
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(searchParams, { defaultLimit: 10, maxLimit: 200 });
 
   const [orders, total] = await Promise.all([
     prisma.order.findMany({

@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Same response and cookie as /api/auth/login
-    const token = generateToken({ id: user.id, role: user.role });
+    const token = generateToken({ id: user.id, role: user.role, tv: user.tokenVersion });
 
     const response = NextResponse.json(
       { success: true, token, role: user.role },

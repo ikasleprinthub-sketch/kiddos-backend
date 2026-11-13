@@ -19,12 +19,16 @@ CREATE TYPE "BannerPosition" AS ENUM ('HOME', 'CATEGORY', 'PRODUCT', 'CHECKOUT',
 -- CreateEnum
 CREATE TYPE "ContactInquiryStatus" AS ENUM ('OPEN', 'RESOLVED', 'CLOSED');
 
+-- CreateEnum
+CREATE TYPE "FranchiseInquiryStatus" AS ENUM ('NEW', 'PENDING', 'CONTACTED');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
-    "password" TEXT NOT NULL,
+    "password" TEXT,
+    "googleId" TEXT,
     "role" "Role" NOT NULL DEFAULT 'USER',
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -83,6 +87,8 @@ CREATE TABLE "products" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "isPopularBatter" BOOLEAN NOT NULL DEFAULT false,
     "isSpiceOil" BOOLEAN NOT NULL DEFAULT false,
+    "isOffer" BOOLEAN NOT NULL DEFAULT false,
+    "isCombo" BOOLEAN NOT NULL DEFAULT false,
     "healthBenefits" TEXT,
     "ingredients" TEXT,
     "nutrientFacts" JSONB,
@@ -129,6 +135,9 @@ CREATE TABLE "orders" (
     "status" "OrderStatus" NOT NULL DEFAULT 'PENDING',
     "paymentStatus" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
     "paymentMethod" TEXT,
+    "razorpayPaymentId" TEXT,
+    "razorpayRefundId" TEXT,
+    "refundStatus" TEXT,
     "subtotal" DECIMAL(10,2) NOT NULL,
     "discount" DECIMAL(10,2) NOT NULL DEFAULT 0,
     "deliveryFee" DECIMAL(10,2) NOT NULL DEFAULT 0,
@@ -244,6 +253,7 @@ CREATE TABLE "franchise_inquiries" (
     "readyToStart" TEXT,
     "message" TEXT,
     "image" TEXT,
+    "status" "FranchiseInquiryStatus" NOT NULL DEFAULT 'PENDING',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "franchise_inquiries_pkey" PRIMARY KEY ("id")
@@ -261,8 +271,20 @@ CREATE TABLE "franchise_downloads" (
     CONSTRAINT "franchise_downloads_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "rate_limit_buckets" (
+    "key" TEXT NOT NULL,
+    "count" INTEGER NOT NULL,
+    "windowStart" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "rate_limit_buckets_pkey" PRIMARY KEY ("key")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_googleId_key" ON "users"("googleId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "categories_name_key" ON "categories"("name");
@@ -283,6 +305,12 @@ CREATE UNIQUE INDEX "product_variants_sku_key" ON "product_variants"("sku");
 CREATE UNIQUE INDEX "orders_orderNumber_key" ON "orders"("orderNumber");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "orders_razorpayPaymentId_key" ON "orders"("razorpayPaymentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "orders_razorpayRefundId_key" ON "orders"("razorpayRefundId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "wishlist_items_userId_productId_key" ON "wishlist_items"("userId", "productId");
 
 -- CreateIndex
@@ -290,6 +318,9 @@ CREATE UNIQUE INDEX "coupons_code_key" ON "coupons"("code");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "settings_key_key" ON "settings"("key");
+
+-- CreateIndex
+CREATE INDEX "rate_limit_buckets_windowStart_idx" ON "rate_limit_buckets"("windowStart");
 
 -- AddForeignKey
 ALTER TABLE "products" ADD CONSTRAINT "products_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

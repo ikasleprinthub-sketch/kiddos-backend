@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parsePagination } from "@/lib/pagination";
 import { parseOptionalImage } from "@/lib/uploads";
 
 function slugify(text: string): string {
@@ -13,17 +14,15 @@ function slugify(text: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  const admin = authorizeAdmin(request);
+  const admin = await authorizeAdmin(request);
   if (!admin) {
     return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
   }
 
   const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "20");
+  const { page, limit, skip } = parsePagination(searchParams, { defaultLimit: 20, maxLimit: 200 });
   // Escape LIKE wildcards so "%" or "_" are matched literally
   const search = (searchParams.get("search") || "").trim().replace(/[\\%_]/g, (c) => `\\${c}`);
-  const skip = (page - 1) * limit;
 
   const where = search
     ? {
@@ -49,7 +48,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const admin = authorizeAdmin(request);
+  const admin = await authorizeAdmin(request);
   if (!admin) {
     return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
   }

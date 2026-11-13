@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Allow public uploads only for the franchises folder, otherwise require admin auth
-  const admin = authorizeAdmin(request);
+  const admin = await authorizeAdmin(request);
   if (!admin) {
     if (folder !== PUBLIC_FOLDER) {
       return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });

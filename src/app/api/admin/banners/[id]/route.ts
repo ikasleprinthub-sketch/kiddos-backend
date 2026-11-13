@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { parseBannerInput } from "@/lib/banners";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = authorizeAdmin(request);
+  const admin = await authorizeAdmin(request);
   if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
 
   const { id } = await params;
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = authorizeAdmin(request);
+  const admin = await authorizeAdmin(request);
   if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
 
   const { id } = await params;
@@ -36,7 +36,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = authorizeAdmin(request);
+  const admin = await authorizeAdmin(request);
   if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
 
   const { id } = await params;

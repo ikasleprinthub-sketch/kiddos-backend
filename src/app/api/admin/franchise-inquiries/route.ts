@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parsePagination } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
   const admin = await authorizeAdmin(request);
   if (!admin) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
-  const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
-  const limit = Math.max(1, parseInt(searchParams.get("limit") || "10"));
+  const { page, limit, skip } = parsePagination(searchParams, { defaultLimit: 10, maxLimit: 200 });
   const search = (searchParams.get("search") || "").toLowerCase().trim();
 
   const statusParam = (searchParams.get("status") || "").toUpperCase().trim();
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       prisma.franchiseInquiry.findMany({
         where: whereClause,
         orderBy: { createdAt: "desc" },
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
       }),
     ]);
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Failed to fetch franchise inquiries:", error);
     return NextResponse.json(
-      { message: error.message || "Failed to fetch franchise inquiries" },
+      { message: "Failed to fetch franchise inquiries" },
       { status: 500 }
     );
   }

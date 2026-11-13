@@ -173,13 +173,7 @@ export const sendEmail = async (
 ): Promise<boolean> => {
   // If credentials are empty, log immediately to avoid unnecessary connection timeouts
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.log("-----------------------------------------");
-    console.log(`[Email Service (MOCK - SMTP Credentials Missing)]`);
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log(`HTML Body:`);
-    console.log(html);
-    console.log("-----------------------------------------");
+    logUnsentEmail("MOCK - SMTP Credentials Missing", to, subject, html);
     return false;
   }
 
@@ -201,16 +195,28 @@ export const sendEmail = async (
     console.error(
       `Failed to send email via SMTP (code=${err.code ?? "-"}, response=${err.responseCode ?? "-"}): ${err.message ?? "unknown error"}`
     );
-    console.log("-----------------------------------------");
-    console.log(`[Email Service (FALLBACK LOG)]`);
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log(`HTML Body:`);
-    console.log(html);
-    console.log("-----------------------------------------");
+    logUnsentEmail("FALLBACK LOG", to, subject, html);
     return false;
   }
 };
+
+/**
+ * Emails carry OTPs and password-reset codes, so their body is printed only on a development machine
+ * (handy for testing without SMTP). In production, logs would otherwise expose working codes.
+ */
+function logUnsentEmail(reason: string, to: string, subject: string, html: string) {
+  console.log("-----------------------------------------");
+  console.log(`[Email Service (${reason})]`);
+  console.log(`To: ${to}`);
+  console.log(`Subject: ${subject}`);
+  if (process.env.NODE_ENV === "development") {
+    console.log(`HTML Body:`);
+    console.log(html);
+  } else {
+    console.log("(body not logged outside development)");
+  }
+  console.log("-----------------------------------------");
+}
 
 // ---------------------------------------------------------------------------
 // Admin "new order" notification

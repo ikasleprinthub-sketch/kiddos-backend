@@ -13,6 +13,8 @@ export async function GET(
     const product = await prisma.product.findFirst({
       where: {
         OR: [{ slug: slug }, { id: slug }],
+        // Deactivated products are hidden from the store, including their direct link
+        isActive: true,
       },
       include: {
         category: { select: { id: true, name: true, slug: true } },

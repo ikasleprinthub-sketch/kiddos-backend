@@ -7,10 +7,13 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: kiddos_user
-      POSTGRES_PASSWORD: kiddos_pass
+      # Must come from .env — never commit a database password. Compose refuses to start without it.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: kiddos_db
     ports:
-      - '5433:5432'
+      # Reachable only from this machine (for admin tools / backups over SSH). The api container
+      # talks to Postgres over the internal Docker network and doesn't need this port at all.
+      - '127.0.0.1:5433:5432'
     volumes:
       - kiddos_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -27,11 +30,13 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://kiddos_user:kiddos_pass@postgres:5432/kiddos_db?sslmode=disable
+      DATABASE_URL: postgresql://kiddos_user:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/kiddos_db?sslmode=disable
       UPLOAD_DIR: /app/uploads
       PORT: 8000
     ports:
-      - '8000:8000'
+      # Only reachable from this machine: the frontend / nginx on the same server proxies to it.
+      # Exposing it publicly would let clients skip the proxy (and forge X-Forwarded-For).
+      - '127.0.0.1:8000:8000'
     volumes:
       # Uploaded images persist on the host, outside the container, so they survive rebuilds/recreation.
       # The host folder defaults to ./public/uploads (where this setup has always stored them); set

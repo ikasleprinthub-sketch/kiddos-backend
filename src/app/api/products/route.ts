@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { parsePagination } from "@/lib/pagination";
 import { PRODUCT_IMAGE_ORDER } from "@/lib/product-images";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "20");
-  const search = searchParams.get("search") || "";
+  const { page, limit, skip } = parsePagination(searchParams, { defaultLimit: 20, maxLimit: 200 });
+  const search = (searchParams.get("search") || "").slice(0, 100);
   const category = searchParams.get("category") || "";
   const featured = searchParams.get("featured");
   const popularBatter = searchParams.get("popularBatter");
   const spiceOil = searchParams.get("spiceOil");
   const offer = searchParams.get("offer");
   const combo = searchParams.get("combo");
-  const skip = (page - 1) * limit;
 
   const where: Record<string, unknown> = { isActive: true };
 

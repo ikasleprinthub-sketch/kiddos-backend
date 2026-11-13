@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/services/email.service";
+import { isValidEmail, sendEmail } from "@/services/email.service";
 import { isValidMobile } from "@/lib/validation";
+import { escapeHtml, generateOtp, limitEmailSends } from "@/lib/otp";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password, phone, role } = body;
+    // Never read a role from the request: public sign-up always creates a USER.
+    // Admin accounts are created only by an existing admin / the seed script.
+    const { name, email, password, phone } = body;
 
     // 1. Basic validation
     if (!name || !email || !password || !phone) {
@@ -17,6 +20,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (typeof name !== "string" || typeof email !== "string" || typeof password !== "string" || typeof phone !== "string") {
+      return NextResponse.json({ message: "Invalid request" }, { status: 400 });
+    }
+
     if (!isValidMobile(phone)) {
       return NextResponse.json(
         { message: "Please enter a valid 10-digit mobile number" },
@@ -24,12 +31,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (password.length < 6) {
+    if (!isValidEmail(email.trim()) || !name.trim() || name.length > 100) {
+      return NextResponse.json({ message: "Please enter a valid name and email address" }, { status: 400 });
+    }
+
+    if (password.length < 8 || password.length > 128) {
       return NextResponse.json(
-        { message: "Password must be at least 6 characters long" },
+        { message: "Password must be at least 8 characters long" },
         { status: 400 }
       );
     }
+
+    const limited = await limitEmailSends(request, "signup", email.trim().toLowerCase());
+    if (limited) return limited;
 
     // 2. Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -46,11 +60,11 @@ export async function POST(request: NextRequest) {
     // 3. Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Determine Role (default to USER)
-    const finalRole = role === "ADMIN" ? "ADMIN" : "USER";
+    // 4. Public sign-ups are always customers
+    const finalRole = "USER" as const;
 
-    // 5. Generate 6-digit numeric OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // 5. Generate 6-digit numeric OTP (crypto-secure)
+    const otp = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
     const normalizedEmail = email.toLowerCase();
@@ -83,7 +97,7 @@ export async function POST(request: NextRequest) {
     const htmlContent = `
       <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 8px;">
         <h2 style="color: #4CAF50; text-align: center;">Kiddos Food</h2>
-        <p>Hi ${name},</p>
+        <p>Hi ${escapeHtml(name)},</p>
         <p>Thank you for registering. Please use the following One-Time Password (OTP) to verify your account:</p>
         <div style="background-color: #f9f9f9; border: 1px dashed #ccc; padding: 15px; font-size: 24px; font-weight: bold; text-align: center; letter-spacing: 5px; margin: 20px 0; color: #333;">
           ${otp}

@@ -47,3 +47,7 @@ next-env.d.ts
 
 /src/generated/prisma
 !.env.example
+
+# local logs and browser-test artifacts
+*.log
+.playwright-mcp/

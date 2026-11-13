@@ -19,6 +19,9 @@ model User {
   isActive      Boolean        @default(true)
   phone         String?
   updatedAt     DateTime       @updatedAt
+  // Part of every login token. Bumping it (password change/reset, suspension, role change)
+  // makes all tokens issued before that moment invalid.
+  tokenVersion  Int            @default(0)
   orders        Order[]
   wishlistItems WishlistItem[]
 
@@ -34,7 +37,23 @@ model OTP {
   createdAt DateTime @default(now())
   tempData  Json?
 
+  @@index([email, type])
   @@map("otps")
+}
+
+// A cart priced by /api/payment/create-order, kept until its payment is confirmed (by the browser
+// via /api/payment/verify or by Razorpay's webhook). The order is built only from this server-side copy.
+model PendingCheckout {
+  razorpayOrderId String   @id
+  userId          String
+  amountPaise     Int
+  summary         Json // { lineItems, subtotal, discount, deliveryFee, total, couponCode }
+  shippingAddress Json
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("pending_checkouts")
 }
 
 model Category {
@@ -85,6 +104,7 @@ model Product {
   wishlistItems       WishlistItem[]
   variants            ProductVariant[]
 
+  @@index([categoryId])
   @@map("products")
 }
 
@@ -104,6 +124,7 @@ model ProductVariant {
   product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]
 
+  @@index([productId])
   @@map("product_variants")
 }
 
@@ -115,6 +136,7 @@ model ProductImage {
   createdAt DateTime @default(now())
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
+  @@index([productId])
   @@map("product_images")
 }
 
@@ -141,6 +163,10 @@ model Order {
   coupon            Coupon?       @relation(fields: [couponId], references: [id])
   user              User          @relation(fields: [userId], references: [id])
 
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([status])
+  @@index([couponId])
   @@map("orders")
 }
 
@@ -156,6 +182,9 @@ model OrderItem {
   product   Product         @relation(fields: [productId], references: [id])
   variant   ProductVariant? @relation(fields: [variantId], references: [id])
 
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
   @@map("order_items")
 }
 

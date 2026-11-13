@@ -3,7 +3,7 @@ import { authorizeAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
-  const admin = authorizeAdmin(request);
+  const admin = await authorizeAdmin(request);
   if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const admin = authorizeAdmin(request);
+  const admin = await authorizeAdmin(request);
   if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
 
   const body = await request.json();
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const admin = authorizeAdmin(request);
+  const admin = await authorizeAdmin(request);
   if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
 
   // Bulk update: { settings: [{ key, value, group }] }

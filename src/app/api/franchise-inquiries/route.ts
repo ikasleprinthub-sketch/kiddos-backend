@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { isUploadUrl } from "@/lib/uploads";
 import { isValidMobile } from "@/lib/validation";
 import { isValidEmail, sendAdminFormEmail } from "@/services/email.service";
+import { limitEmailSends } from "@/lib/otp";
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,36 +67,18 @@ export async function POST(request: NextRequest) {
       status: initialStatus as any,
     };
 
-    // Store the inquiry in the dedicated FranchiseInquiry table
-    let inquiry;
-    try {
-      inquiry = await prisma.franchiseInquiry.create({
-        data: inquiryData,
-      });
-    } catch (createError: any) {
-      const errMsg = String(createError?.message || "");
-      // If status column or enum doesn't exist in the database, auto-migrate and retry
-      if (errMsg.includes("status") || createError?.code === "42703") {
-        console.warn("Franchise inquiry table missing status column/enum. Running auto-migration...");
-        await prisma.$executeRawUnsafe(`
-          DO $$ BEGIN
-            CREATE TYPE "FranchiseInquiryStatus" AS ENUM ('NEW', 'PENDING', 'CONTACTED');
-          EXCEPTION
-            WHEN duplicate_object THEN null;
-          END $$;
-          ALTER TABLE "franchise_inquiries" 
-          ADD COLUMN IF NOT EXISTS "status" "FranchiseInquiryStatus" NOT NULL DEFAULT 'PENDING';
-          ALTER TABLE "franchise_inquiries" 
-          ALTER COLUMN "status" SET DEFAULT 'PENDING';
-        `).catch(err => console.error("Auto-migration retry failed:", err));
-
-        inquiry = await prisma.franchiseInquiry.create({
-          data: inquiryData,
-        });
-      } else {
-        throw createError;
-      }
+    // Free-text fields are stored and emailed, so cap their size
+    if (Object.values(inquiryData).some((v) => typeof v === "string" && v.length > 2000)) {
+      return NextResponse.json({ message: "One or more fields are too long" }, { status: 400 });
     }
+
+    const limited = await limitEmailSends(request, "franchise", inquiryData.email.toLowerCase());
+    if (limited) return limited;
+
+    // Schema changes belong in prisma/migrations, never in request handlers
+    const inquiry = await prisma.franchiseInquiry.create({
+      data: inquiryData,
+    });
 
     // Saved already: a mail problem is logged inside and never changes the response
     void sendAdminFormEmail({
@@ -130,7 +113,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Franchise inquiry error:", error);
     return NextResponse.json(
-      { message: error.message || "Failed to submit inquiry" },
+      { message: "Failed to submit inquiry. Please try again." },
       { status: 500 }
     );
   }

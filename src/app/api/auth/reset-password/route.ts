@@ -1,27 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { limitOtpAttempts } from "@/lib/otp";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { email, otp, newPassword } = body;
 
-    if (!email || !otp || !newPassword) {
+    if (typeof email !== "string" || typeof otp !== "string" || typeof newPassword !== "string" || !email || !otp || !newPassword) {
       return NextResponse.json(
         { message: "Email, OTP, and new password are required" },
         { status: 400 }
       );
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8 || newPassword.length > 128) {
       return NextResponse.json(
-        { message: "New password must be at least 6 characters long" },
+        { message: "New password must be at least 8 characters long" },
         { status: 400 }
       );
     }
 
     const normalizedEmail = email.toLowerCase();
+
+    const limited = await limitOtpAttempts("reset-password", normalizedEmail);
+    if (limited) return limited;
 
     const otpRecord = await prisma.oTP.findFirst({
       where: { email: normalizedEmail, otp, type: "RESET_PASSWORD" },
@@ -47,7 +51,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
+      return NextResponse.json({ message: "Invalid OTP code" }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -55,7 +59,8 @@ export async function POST(request: NextRequest) {
     await prisma.$transaction([
       prisma.user.update({
         where: { id: user.id },
-        data: { password: hashedPassword },
+        // New password ends every existing session (e.g. an attacker who knew the old one)
+        data: { password: hashedPassword, tokenVersion: { increment: 1 } },
       }),
       prisma.oTP.delete({ where: { id: otpRecord.id } }),
     ]);

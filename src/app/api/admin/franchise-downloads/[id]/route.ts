@@ -6,7 +6,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = authorizeAdmin(request);
+  const admin = await authorizeAdmin(request);
   if (!admin) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
@@ -21,7 +21,7 @@ export async function DELETE(
   } catch (error: any) {
     console.error("Failed to delete download lead:", error);
     return NextResponse.json(
-      { message: error.message || "Failed to delete download lead" },
+      { message: "Failed to delete download lead" },
       { status: 500 }
     );
   }

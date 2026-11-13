@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { limitOtpAttempts } from "@/lib/otp";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { email, otp } = body;
 
-    if (!email || !otp) {
+    if (typeof email !== "string" || typeof otp !== "string" || !email || !otp) {
       return NextResponse.json(
         { message: "Email and OTP are required" },
         { status: 400 }
@@ -14,6 +15,9 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase();
+
+    const limited = await limitOtpAttempts("verify-email", normalizedEmail);
+    if (limited) return limited;
 
     const otpRecord = await prisma.oTP.findFirst({
       where: { email: normalizedEmail, otp, type: "VERIFY_EMAIL" },
@@ -74,7 +78,8 @@ export async function POST(request: NextRequest) {
           email: normalizedEmail,
           password: tempData.password,
           phone: tempData.phone || null,
-          role: tempData.role || "USER",
+          // Always a customer, whatever an older pending sign-up stored in tempData
+          role: "USER",
           isVerified: true,
         },
       }),

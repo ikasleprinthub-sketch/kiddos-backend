@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parsePagination } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
-  const admin = authorizeAdmin(request);
+  const admin = await authorizeAdmin(request);
   if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "20");
+  const { page, limit, skip } = parsePagination(searchParams, { defaultLimit: 20, maxLimit: 200 });
   const search = searchParams.get("search") || "";
-  const skip = (page - 1) * limit;
 
   const where = search
     ? { code: { contains: search, mode: "insensitive" as const } }
@@ -31,7 +30,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const admin = authorizeAdmin(request);
+  const admin = await authorizeAdmin(request);
   if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
 
   const body = await request.json();

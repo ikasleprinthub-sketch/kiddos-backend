@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendAdminFormEmail } from "@/services/email.service";
+import { limitOtpAttempts } from "@/lib/otp";
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,7 +9,7 @@ export async function POST(request: NextRequest) {
     const { email, otp } = body;
 
     // 1. Basic validation
-    if (!email || !otp) {
+    if (typeof email !== "string" || typeof otp !== "string" || !email || !otp) {
       return NextResponse.json(
         { message: "Email and OTP code are required" },
         { status: 400 }
@@ -16,6 +17,9 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase();
+
+    const limited = await limitOtpAttempts("franchise-download", normalizedEmail);
+    if (limited) return limited;
 
     // 2. Query OTP record
     const otpRecord = await prisma.oTP.findFirst({

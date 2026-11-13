@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isValidEmail, sendAdminFormEmail } from "@/services/email.service";
+import { limitEmailSends } from "@/lib/otp";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { name, email, phone, subject, message } = body;
 
+    if ([name, email, subject, message].some((v) => v != null && typeof v !== "string") || (phone != null && typeof phone !== "string")) {
+      return NextResponse.json({ message: "Invalid request" }, { status: 400 });
+    }
     if (!name?.trim()) return NextResponse.json({ message: "Name is required" }, { status: 400 });
     if (!/^[a-zA-Z][a-zA-Z\s.]{1,99}$/.test(name.trim())) return NextResponse.json({ message: "Please enter a valid name using alphabetic characters." }, { status: 400 });
     if (!email?.trim()) return NextResponse.json({ message: "Email is required" }, { status: 400 });
@@ -17,6 +21,10 @@ export async function POST(request: NextRequest) {
     if (name.length > 200 || subject.length > 300 || message.length > 5000 || (phone && String(phone).length > 30)) {
       return NextResponse.json({ message: "One or more fields are too long" }, { status: 400 });
     }
+
+    // Each submission emails the admin inbox, so limit how often it can be used
+    const limited = await limitEmailSends(request, "contact", email.trim().toLowerCase());
+    if (limited) return limited;
 
     const inquiry = await prisma.contactInquiry.create({
       data: {

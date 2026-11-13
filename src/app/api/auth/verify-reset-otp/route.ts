@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { limitOtpAttempts } from "@/lib/otp";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { email, otp } = body;
 
-    if (!email || !otp) {
+    if (typeof email !== "string" || typeof otp !== "string" || !email || !otp) {
       return NextResponse.json(
         { message: "Email and OTP are required" },
         { status: 400 }
@@ -14,6 +15,10 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase();
+
+    // Shares its counter with /reset-password, so the two endpoints together allow only a few guesses
+    const limited = await limitOtpAttempts("reset-password", normalizedEmail);
+    if (limited) return limited;
 
     const otpRecord = await prisma.oTP.findFirst({
       where: { email: normalizedEmail, otp, type: "RESET_PASSWORD" },

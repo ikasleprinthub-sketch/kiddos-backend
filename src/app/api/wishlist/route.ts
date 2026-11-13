@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/auth";
 
+// A wishlist sync from the browser's saved list never needs more than this
+const MAX_SYNC = 200;
+
 export async function GET(req: NextRequest) {
   try {
     const user = await getUserFromRequest(req);
@@ -42,44 +45,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    
-    // Handle sync of multiple items from local storage
-    if (body.productIds && Array.isArray(body.productIds)) {
-      const productIds = body.productIds as string[];
-      
-      let syncedCount = 0;
-      for (const productId of productIds) {
-        // Only insert if it doesn't already exist
-        const existing = await prisma.wishlistItem.findUnique({
-          where: {
-            userId_productId: {
-              userId: user.id,
-              productId,
-            },
-          },
-        });
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
 
-        if (!existing) {
-          // Verify product exists
-          const productExists = await prisma.product.findUnique({ where: { id: productId } });
-          if (productExists) {
-            await prisma.wishlistItem.create({
-              data: {
-                userId: user.id,
-                productId,
-              },
-            });
-            syncedCount++;
-          }
-        }
-      }
-      return NextResponse.json({ success: true, syncedCount });
+    // Handle sync of multiple items from local storage (bounded, and 2 queries instead of 3 per item)
+    if (Array.isArray(body.productIds)) {
+      const productIds = [...new Set(
+        (body.productIds as unknown[]).filter((v): v is string => typeof v === "string" && v.length > 0 && v.length <= 64)
+      )].slice(0, MAX_SYNC);
+
+      const products = productIds.length
+        ? await prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true } })
+        : [];
+      const result = products.length
+        ? await prisma.wishlistItem.createMany({
+            data: products.map((p) => ({ userId: user.id, productId: p.id })),
+            skipDuplicates: true,
+          })
+        : { count: 0 };
+      return NextResponse.json({ success: true, syncedCount: result.count });
     }
 
     // Handle single item addition
-    if (!body.productId) {
+    if (typeof body.productId !== "string" || !body.productId || body.productId.length > 64) {
       return NextResponse.json({ error: "productId is required" }, { status: 400 });
+    }
+
+    const product = await prisma.product.findUnique({ where: { id: body.productId }, select: { id: true } });
+    if (!product) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
     const existing = await prisma.wishlistItem.findUnique({

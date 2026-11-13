@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parsePagination } from "@/lib/pagination";
 
 const phoneFromAddress = (address: unknown): string | null => {
   const phone = (address as { phone?: unknown } | null)?.phone;
@@ -8,17 +9,16 @@ const phoneFromAddress = (address: unknown): string | null => {
 };
 
 export async function GET(request: NextRequest) {
-  const admin = authorizeAdmin(request);
+  const admin = await authorizeAdmin(request);
   if (!admin) return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
-  const page = parseInt(searchParams.get("page") || "1");
-  const limit = parseInt(searchParams.get("limit") || "20");
+  const { page, limit, skip } = parsePagination(searchParams);
   const search = searchParams.get("search") || "";
   const isActive = searchParams.get("isActive");
-  const skip = (page - 1) * limit;
 
-  const where: Record<string, unknown> = { role: "USER" };
+  // Customers deleted while they had orders are kept only as anonymised order owners; don't list them
+  const where: Record<string, unknown> = { role: "USER", NOT: { email: { endsWith: "@deleted.invalid" } } };
   if (search) {
     where.OR = [
       { name: { contains: search, mode: "insensitive" } },

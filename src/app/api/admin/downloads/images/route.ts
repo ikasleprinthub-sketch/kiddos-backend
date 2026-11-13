@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   try {
     // Check if user is authenticated and has admin role
     // Returns null if user is not authenticated or not an admin
-    const admin = authorizeAdmin(request);
+    const admin = await authorizeAdmin(request);
     if (!admin) {
       return NextResponse.json({ message: "Access denied: Admins only" }, { status: 403 });
     }
@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
     console.error("Download error:", error);
     // Return a user-friendly error message to the client
     return NextResponse.json(
-      { message: error.message || "Failed to download images" },
+      { message: "Failed to download images" },
       { status: 500 }
     );
   }

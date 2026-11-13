@@ -2,13 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { razorpay } from "@/lib/razorpay";
-import { getDeliveryFieldConfig, validateShippingAddress } from "@/lib/delivery-fields";
-
-interface CartItem {
-  productId: string;
-  variantId?: string;
-  quantity: number;
-}
+import { getDeliveryFieldConfig, normalizeShippingAddress, validateShippingAddress } from "@/lib/delivery-fields";
+import { parseCartItems } from "@/lib/checkout";
 
 interface ShippingAddress {
   name: string;
@@ -22,42 +17,34 @@ interface ShippingAddress {
 
 export async function POST(request: NextRequest) {
   try {
-  const user = getUserFromRequest(request);
+  const user = await getUserFromRequest(request);
   if (!user) {
     return NextResponse.json({ message: "Authentication required" }, { status: 401 });
   }
 
   const body = await request.json();
-  const { items, shippingAddress, couponCode, notes } = body as {
-    items: CartItem[];
+  const { items, shippingAddress, couponCode: rawCouponCode, notes } = body as {
+    items: unknown;
     shippingAddress: ShippingAddress;
-    couponCode?: string;
+    couponCode?: unknown;
     notes?: string;
   };
+  const couponCode = typeof rawCouponCode === "string" && rawCouponCode.trim() ? rawCouponCode.trim() : undefined;
 
-  if (!items?.length) {
-    return NextResponse.json({ message: "Cart is empty" }, { status: 400 });
+  // Validates every line (whole-number quantity 1..1000, no negatives) and merges duplicates
+  const parsedCart = parseCartItems(items);
+  if ("error" in parsedCart) {
+    return NextResponse.json({ message: parsedCart.error }, { status: 400 });
   }
+  const uniqueItems = parsedCart.items;
 
   const addressError = validateShippingAddress(shippingAddress, await getDeliveryFieldConfig());
   if (addressError) {
     return NextResponse.json({ message: addressError }, { status: 400 });
   }
 
-  // Consolidate duplicate items in the cart
-  const consolidatedItemsMap = new Map<string, CartItem>();
-  for (const item of items) {
-    const key = item.variantId ? `${item.productId}-${item.variantId}` : item.productId;
-    if (consolidatedItemsMap.has(key)) {
-      consolidatedItemsMap.get(key)!.quantity += item.quantity;
-    } else {
-      consolidatedItemsMap.set(key, { ...item });
-    }
-  }
-  const uniqueItems = Array.from(consolidatedItemsMap.values());
-
-  // Load and validate products
-  const productIds = uniqueItems.map((i) => i.productId);
+  // Load and validate products (the same product can appear on several lines with different variants)
+  const productIds = [...new Set(uniqueItems.map((i) => i.productId))];
   const products = await prisma.product.findMany({
     where: { id: { in: productIds }, isActive: true },
     select: { 
@@ -79,7 +66,7 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  if (products.length !== uniqueItems.length) {
+  if (products.length !== productIds.length) {
     return NextResponse.json({ message: "One or more products are unavailable" }, { status: 400 });
   }
 
@@ -98,6 +85,13 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
+      // A product without its own price (e.g. priced only through variants) must not be sold for ₹0
+      if (product.price == null) {
+        return NextResponse.json(
+          { message: `Please choose an option for "${product.name ?? "this product"}"` },
+          { status: 400 }
+        );
+      }
       if (product.stock < item.quantity) {
         return NextResponse.json(
           { message: `Insufficient stock for "${product.name ?? "Unnamed Product"}" (available: ${product.stock})` },
@@ -174,37 +168,79 @@ export async function POST(request: NextRequest) {
 
   const total = Math.max(0, subtotal - discount + deliveryFee);
 
+  const orderSummary = {
+    subtotal: subtotal.toFixed(2),
+    discount: discount.toFixed(2),
+    deliveryFee: deliveryFee.toFixed(2),
+    total: total.toFixed(2),
+    couponCode: coupon?.code || null,
+    lineItems,
+  };
+
+  const amountPaise = Math.round(total * 100);
+  if (amountPaise < 100) {
+    return NextResponse.json({ message: "Order total must be at least ₹1" }, { status: 400 });
+  }
+
   // Create Razorpay order (amount in paise)
-const razorpayOrder = await razorpay.orders.create({
-    amount: Math.round(total * 100),
+  const razorpayOrder = await razorpay.orders.create({
+    amount: amountPaise,
     currency: "INR",
     receipt: `kiddos_${Date.now()}`,
     notes: {
       userId: user.id,
-      couponCode: couponCode || "",
+      couponCode: coupon?.code || "",
     },
   });
+
+  // Keep the priced cart on the server. The order is later built only from this copy (by /verify or the
+  // Razorpay webhook), so nothing the browser sends after payment can change items, prices or totals.
+  await prisma.pendingCheckout.create({
+    data: {
+      razorpayOrderId: razorpayOrder.id,
+      userId: user.id,
+      amountPaise,
+      summary: orderSummary,
+      shippingAddress: normalizeShippingAddress(shippingAddress),
+      notes: typeof notes === "string" && notes.trim() ? notes.trim().slice(0, 1000) : null,
+    },
+  });
+
+  // Abandoned checkouts are not needed after a week (Razorpay orders can't be paid that late in practice)
+  if (Math.random() < 0.02) {
+    prisma.pendingCheckout
+      .deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } })
+      .catch(() => {});
+  }
 
   return NextResponse.json({
     razorpayOrderId: razorpayOrder.id,
     keyId: process.env.RAZORPAY_KEY_ID,
     amount: razorpayOrder.amount,
     currency: razorpayOrder.currency,
-    orderSummary: {
-      subtotal: subtotal.toFixed(2),
-      discount: discount.toFixed(2),
-      deliveryFee: deliveryFee.toFixed(2),
-      total: total.toFixed(2),
-      couponCode: coupon?.code || null,
-      lineItems,
-    },
+    orderSummary,
     shippingAddress,
     notes,
   });
   } catch (error) {
-    console.error("[payment/create-order]", (error as Error).message);
+    // The Razorpay SDK rejects with { statusCode, error: { code, description } } — not an Error — so read both shapes
+    const rz = error as { statusCode?: number; error?: { code?: string; description?: string }; message?: string };
+    const reason = rz.error?.description || rz.message || String(error);
+    const fromRazorpay = typeof rz.statusCode === "number";
+    console.error(`[payment/create-order]${fromRazorpay ? ` Razorpay ${rz.statusCode}` : ""}:`, reason);
+
+    if (fromRazorpay) {
+      // 401 = wrong/revoked RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET in .env
+      return NextResponse.json(
+        {
+          message: "The payment gateway is unavailable right now. Please try again in a few minutes.",
+          ...(process.env.NODE_ENV !== "production" && { detail: `Razorpay ${rz.statusCode}: ${reason}` }),
+        },
+        { status: 502 }
+      );
+    }
     return NextResponse.json(
-      { message: "Internal server error", ...(process.env.NODE_ENV !== "production" && { detail: (error as Error).message }) },
+      { message: "Internal server error", ...(process.env.NODE_ENV !== "production" && { detail: reason }) },
       { status: 500 }
     );
   }

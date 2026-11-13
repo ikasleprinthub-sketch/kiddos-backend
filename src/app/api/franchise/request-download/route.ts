@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isValidEmail, sendEmail } from "@/services/email.service";
 import { isValidMobile, isValidName } from "@/lib/validation";
+import { escapeHtml, generateOtp, limitEmailSends } from "@/lib/otp";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,8 +37,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const limited = await limitEmailSends(request, "download", normalizedEmail);
+    if (limited) return limited;
+
     // 2. Generate 6-digit numeric OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
     // Delete any old download verification OTPs for this email to avoid clutter
@@ -67,7 +71,7 @@ export async function POST(request: NextRequest) {
     const htmlContent = `
       <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 8px;">
         <h2 style="color: #4CAF50; text-align: center;">Kiddos Food</h2>
-        <p>Hi ${name},</p>
+        <p>Hi ${escapeHtml(name)},</p>
         <p>Thank you for your interest in Kiddos Food Franchise resources. Please use the following One-Time Password (OTP) to verify your request and download your document:</p>
         <div style="background-color: #f9f9f9; border: 1px dashed #ccc; padding: 15px; font-size: 24px; font-weight: bold; text-align: center; letter-spacing: 5px; margin: 20px 0; color: #333;">
           ${otp}
